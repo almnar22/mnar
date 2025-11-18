@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { AppHeader } from './AppHeader';
-import type { Delegate, Student, Role, Commission, BankAccount, User } from '../types';
+import type { Delegate, Student, Role, Commission, BankAccount, User, CourseObject } from '../types';
 import { CommissionStatus, StudentStatus } from '../types';
 import { RegistrationForm } from './StudentManagement';
 import { UserStaffModal } from './DelegateManagement';
@@ -11,48 +11,23 @@ interface DelegateDashboardProps {
     delegates: Delegate[];
     students: Student[];
     commissions: Commission[];
+    courses: CourseObject[];
     onAddStudent: (student: Omit<Student, 'id' | 'registrationDate'>) => void;
 }
 
 type DelegateView = 'dashboard' | 'students' | 'addStudent' | 'addDelegate' | 'commissions' | 'bankAccount' | 'profile' | 'myNetwork' | 'changePassword';
 
-const StatCard: React.FC<{ title: string; value: string | number; icon: string; color: 'primary' | 'secondary' }> = ({ title, value, icon, color }) => {
-    const colorClasses = {
-      primary: 'bg-[var(--color-primary-light)] text-[var(--color-primary)] border-[var(--color-primary)]',
-      secondary: 'bg-[var(--color-secondary-light)] text-[var(--color-secondary)] border-[var(--color-secondary)]',
-    };
+const ProgressBar: React.FC<{ percentage: number }> = ({ percentage }) => {
+    let colorClass = 'bg-green-500';
+    if (percentage < 30) colorClass = 'bg-red-500';
+    else if (percentage < 70) colorClass = 'bg-orange-500';
+
     return (
-      <div className={`p-6 rounded-lg shadow-md border-t-4 ${colorClasses[color]}`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-lg font-semibold text-[var(--color-text-base)]">{title}</p>
-            <p className={`text-3xl font-bold ${color === 'secondary' ? 'text-[var(--color-secondary)]' : 'text-[var(--color-primary)]'}`}>{value}</p>
-          </div>
-          <div className="text-4xl">{icon}</div>
+        <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+            <div className={`${colorClass} h-2.5 rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
         </div>
-      </div>
     );
 };
-
-const TabButton: React.FC<{
-    label: string;
-    icon: string;
-    isActive: boolean;
-    onClick: () => void;
-}> = ({ label, icon, isActive, onClick }) => (
-    <button
-        onClick={onClick}
-        className={`flex-1 whitespace-nowrap md:flex-initial md:w-auto flex items-center justify-center gap-2 p-3 font-bold rounded-t-lg transition-colors ${
-            isActive
-                ? 'bg-[var(--color-card)] text-[var(--color-primary)]'
-                : 'bg-[var(--color-primary-light)] text-[var(--color-primary)] hover:bg-[var(--color-border)]'
-        }`}
-    >
-        <span>{icon}</span>
-        <span>{label}</span>
-    </button>
-);
-
 
 const Notification: React.FC<{ message: string; type: 'success' | 'error' }> = ({ message, type }) => {
     const baseClasses = "p-4 rounded-md text-[var(--color-primary-text)] font-bold mb-4 flex items-center gap-2 whitespace-pre-wrap";
@@ -77,8 +52,70 @@ const studentStatusStyles: Record<StudentStatus, { classes: string, label: strin
     [StudentStatus.Completed]: { classes: 'bg-purple-100 text-purple-800', label: 'مكتمل', icon: '🎓' },
 };
 
+// --- New Components for Grid Layout ---
 
-export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates, students, commissions, onAddStudent }) => {
+const QuickStatsBar: React.FC<{ stats: { students: number, commissions: number, network: number, pending: number } }> = ({ stats }) => (
+    <div className="bg-[var(--color-card)] rounded-lg shadow-md border border-[var(--color-border)] p-4 mb-6">
+        <div className="flex justify-between items-center text-center text-[var(--color-text-base)]">
+            <div className="flex-1 border-l border-[var(--color-border)]">
+                 <span className="block text-xs md:text-sm text-[var(--color-text-muted)] mb-1">👥 الطلاب</span>
+                 <span className="text-lg md:text-xl font-bold text-green-600">{stats.students}</span>
+            </div>
+            <div className="flex-1 border-l border-[var(--color-border)]">
+                 <span className="block text-xs md:text-sm text-[var(--color-text-muted)] mb-1">💰 العمولات</span>
+                 <span className="text-lg md:text-xl font-bold text-orange-600">{stats.commissions}</span>
+            </div>
+             <div className="flex-1 border-l border-[var(--color-border)]">
+                 <span className="block text-xs md:text-sm text-[var(--color-text-muted)] mb-1">🌐 الشبكة</span>
+                 <span className="text-lg md:text-xl font-bold text-purple-600">{stats.network}</span>
+            </div>
+             <div className="flex-1">
+                 <span className="block text-xs md:text-sm text-[var(--color-text-muted)] mb-1">📊 معلق</span>
+                 <span className="text-lg md:text-xl font-bold text-cyan-600">{stats.pending}</span>
+            </div>
+        </div>
+    </div>
+);
+
+const MenuGrid: React.FC<{ onItemClick: (view: DelegateView) => void; logout: () => void }> = ({ onItemClick, logout }) => {
+    const menuItems = [
+        { id: 'dashboard' as DelegateView, label: 'لوحة التحكم', icon: '📊', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', key: '1' },
+        { id: 'students' as DelegateView, label: 'طلابي', icon: '👥', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', key: '2' },
+        { id: 'commissions' as DelegateView, label: 'عمولاتي', icon: '💰', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', key: '3' },
+        { id: 'myNetwork' as DelegateView, label: 'شبكتي', icon: '🌐', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', key: '4' },
+        { id: 'addStudent' as DelegateView, label: 'تسجيل طالب', icon: '📝', color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-200', key: '5' },
+        { id: 'addDelegate' as DelegateView, label: 'إضافة مندوب', icon: '🤝', color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', key: '6' },
+        { id: 'bankAccount' as DelegateView, label: 'حسابي البنكي', icon: '🏦', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200', key: '7' },
+        { id: 'profile' as DelegateView, label: 'بياناتي', icon: '👤', color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200', key: '8' },
+        { id: 'changePassword' as DelegateView, label: 'كلمة المرور', icon: '🔐', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', key: '9' },
+    ];
+
+    return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {menuItems.map((item) => (
+                <button 
+                    key={item.id}
+                    onClick={() => onItemClick(item.id)}
+                    className={`${item.bg} ${item.border} border hover:shadow-lg transition-all p-4 rounded-xl flex flex-col items-center justify-center gap-2 group h-32`}
+                >
+                    <span className="text-3xl group-hover:scale-110 transition-transform">{item.icon}</span>
+                    <span className="text-xs font-mono opacity-50 text-[var(--color-text-muted)]">[{item.key}]</span>
+                    <span className={`font-bold ${item.color}`}>{item.label}</span>
+                </button>
+            ))}
+            <button 
+                onClick={logout}
+                className="bg-gray-50 border-gray-200 border hover:shadow-lg transition-all p-4 rounded-xl flex flex-col items-center justify-center gap-2 group h-32"
+            >
+                <span className="text-3xl group-hover:scale-110 transition-transform">🚪</span>
+                <span className="text-xs font-mono opacity-50 text-[var(--color-text-muted)]">[0]</span>
+                <span className="font-bold text-gray-600">تسجيل خروج</span>
+            </button>
+        </div>
+    );
+};
+
+export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates, students, commissions, courses, onAddStudent }) => {
     const { currentUser, users, logout, addUser, updateUser, bankAccounts, addOrUpdateBankAccount, changePassword } = useAuth();
     const [activeTab, setActiveTab] = useState<DelegateView>('dashboard');
     const [isAddDelegateModalOpen, setIsAddDelegateModalOpen] = useState(false);
@@ -123,6 +160,13 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
 
     const myStudents = students.filter(s => s.delegateId === delegateProfile.id);
     const myCommissions = commissions.filter(c => c.delegateId === delegateProfile.id);
+
+    // Filter courses
+    const activeCourses = courses.filter(c => c.status === 'active');
+    const upcomingCourses = courses.filter(c => c.status === 'upcoming');
+    const availableCourses = courses.filter(c => c.enrollment_open && c.current_students < c.max_students)
+            .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+
 
     const handleSaveDelegate = (data: any) => {
         const newUser = addUser(data, currentUser.id); // Pass current user's ID as referrer
@@ -169,19 +213,270 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
          setTimeout(() => setNotification(null), 3000);
     };
 
+    const getDaysDifference = (dateStr: string) => {
+        if (!dateStr) return 0;
+        const target = new Date(dateStr);
+        const now = new Date();
+        const diffTime = target.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        return diffDays;
+    };
+    
+    const calculateProgress = (course: CourseObject) => {
+        if (course.status === 'upcoming') return 0;
+        if (course.status === 'completed') return 100;
+        
+        const start = new Date(course.start_date).getTime();
+        const end = new Date(course.end_date).getTime();
+        const now = new Date().getTime();
+        
+        if (now < start) return 0;
+        if (now > end) return 100;
+        
+        const total = end - start;
+        const current = now - start;
+        return total === 0 ? 0 : Math.min(100, Math.max(0, Math.round((current / total) * 100)));
+    };
+
     const renderContent = () => {
         switch (activeTab) {
             case 'dashboard':
+                const myStudentsCourses = courses.filter(c => {
+                     return students.some(s => s.delegateId === delegateProfile.id && s.course === c.name);
+                }).slice(0, 3);
+                
+                const stats = {
+                    students: delegateProfile.students,
+                    commissions: myCommissions.reduce((sum, c) => sum + c.amount, 0),
+                    network: myNetwork.length,
+                    pending: myCommissions.filter(c => c.status === CommissionStatus.Pending).length
+                };
+
                 return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <StatCard title="الطلاب المسجلين" value={delegateProfile.students} icon="👥" color="primary" />
-                        <StatCard title="العمولات (الإجمالي)" value={`${myCommissions.reduce((sum, c) => sum + c.amount, 0).toLocaleString()} ريال`} icon="💰" color="secondary" />
+                    <div className="space-y-8">
+                        {/* Elegant Stats Bar */}
+                        <QuickStatsBar stats={stats} />
+
+                        {/* Main Menu Grid */}
+                        <div>
+                            <h3 className="text-xl font-bold text-[var(--color-primary)] mb-4 flex items-center gap-2">
+                                <span>🔷</span> القائمة الرئيسية
+                            </h3>
+                            <MenuGrid onItemClick={setActiveTab} logout={logout} />
+                        </div>
+
+                        {/* Active Courses - Elegant Card Design */}
+                        {activeCourses.length > 0 && (
+                            <div>
+                                <h3 className="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
+                                    <span>🟢</span> الدورات النشطة حالياً
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {activeCourses.map(course => {
+                                        const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
+                                        const progress = calculateProgress(course);
+                                        const remainingDays = Math.max(0, getDaysDifference(course.end_date));
+                                        
+                                        return (
+                                            <div key={course.id} className="bg-[var(--color-card)] rounded-lg shadow-md border-t-4 border-green-500 overflow-hidden transition-transform hover:scale-[1.01]">
+                                                {/* Title */}
+                                                <div className="p-4 border-b border-gray-100 bg-green-50/50">
+                                                    <h4 className="font-bold text-lg text-green-800 flex items-center gap-2">
+                                                        <span>📚</span> {course.name}
+                                                    </h4>
+                                                </div>
+                                                
+                                                <div className="p-5 space-y-4">
+                                                    {/* Progress */}
+                                                    <div>
+                                                        <div className="flex justify-between text-sm font-bold text-blue-700 mb-1">
+                                                            <span>⏳ التقدم:</span>
+                                                            <span>{progress}% مكتمل</span>
+                                                        </div>
+                                                        <ProgressBar percentage={progress} />
+                                                    </div>
+                                                    
+                                                    {/* Details Row 1 */}
+                                                    <div className="flex flex-wrap justify-between items-center text-sm gap-4">
+                                                        <span className="flex items-center gap-2 text-orange-700 font-semibold bg-orange-50 px-3 py-1 rounded-full">
+                                                            <span>{timeIcon}</span> الوقت: {course.time_slot}
+                                                        </span>
+                                                        <span className="flex items-center gap-2 text-purple-700 font-semibold bg-purple-50 px-3 py-1 rounded-full">
+                                                            <span>👥</span> الطلاب: {course.current_students}/{course.max_students}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    {/* Footer Info */}
+                                                    <div className="flex justify-between items-center text-sm border-t border-gray-100 pt-3 mt-2">
+                                                        <span className="text-cyan-700 font-bold flex items-center gap-1">
+                                                            <span>📅</span> المتبقي: {remainingDays} يوم
+                                                        </span>
+                                                        <span className="text-green-600 font-bold bg-green-100 px-2 py-1 rounded flex items-center gap-1">
+                                                            <span>✅</span> نشطة - مقاعد متاحة
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Action Button */}
+                                                <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
+                                                     <button 
+                                                        onClick={() => setActiveTab('addStudent')} 
+                                                        className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition flex items-center justify-center gap-2"
+                                                    >
+                                                        <span>🎯</span> [سجل الآن] - انضم إلى الدورة
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Upcoming Courses - Elegant Card Design */}
+                        {upcomingCourses.length > 0 && (
+                            <div>
+                                <h3 className="text-xl font-bold text-orange-700 mb-4 flex items-center gap-2">
+                                    <span>🟡</span> الدورات القادمة
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {upcomingCourses.map(course => {
+                                        const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
+                                        const daysUntil = getDaysDifference(course.start_date);
+                                        const statusColor = course.enrollment_open ? "text-green-600" : "text-red-600";
+                                        const statusBg = course.enrollment_open ? "bg-green-100" : "bg-red-100";
+                                        const statusIcon = course.enrollment_open ? "🔓" : "🔒";
+                                        const seatsRemaining = course.max_students - course.current_students;
+                                        
+                                        return (
+                                             <div key={course.id} className="bg-[var(--color-card)] rounded-lg shadow-md border-t-4 border-orange-500 overflow-hidden transition-transform hover:scale-[1.01]">
+                                                {/* Title */}
+                                                <div className="p-4 border-b border-gray-100 bg-orange-50/50">
+                                                    <h4 className="font-bold text-lg text-orange-800 flex items-center gap-2">
+                                                        <span>🎯</span> {course.name}
+                                                    </h4>
+                                                </div>
+                                                
+                                                <div className="p-5 space-y-4">
+                                                    {/* Date Row */}
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-blue-700 font-semibold flex items-center gap-1">
+                                                            <span>📅</span> الانطلاق: <span dir="ltr">{course.start_date}</span>
+                                                        </span>
+                                                        <span className="text-orange-600 font-bold flex items-center gap-1 bg-orange-50 px-2 py-1 rounded">
+                                                            <span>⏰</span> بعد {daysUntil} يوم
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    {/* Info Row */}
+                                                    <div className="flex justify-between items-center text-sm">
+                                                        <span className="text-cyan-700 font-semibold flex items-center gap-1">
+                                                            <span>{timeIcon}</span> الوقت: {course.time_slot}
+                                                        </span>
+                                                        <span className="text-purple-700 font-semibold flex items-center gap-1">
+                                                            <span>👥</span> المسجلين: {course.current_students}/{course.max_students}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    {/* Footer Status */}
+                                                    <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                                                        <span className={`font-bold flex items-center gap-1 px-3 py-1 rounded-full text-sm ${statusColor} ${statusBg}`}>
+                                                            {statusIcon} التسجيل: {course.enrollment_open ? 'مفتوح' : 'مغلق'}
+                                                        </span>
+                                                        <span className="font-bold text-green-700 flex items-center gap-1">
+                                                            <span>💺</span> {seatsRemaining} مقعد متبقي
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                 {/* Action Button */}
+                                                <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
+                                                    {course.enrollment_open ? (
+                                                        <button 
+                                                            onClick={() => setActiveTab('addStudent')} 
+                                                            className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition flex items-center justify-center gap-2"
+                                                        >
+                                                            <span>🎯</span> [احجز مقعدك] - سجل قبل انتهاء المقاعد
+                                                        </button>
+                                                    ) : (
+                                                         <button disabled className="w-full bg-gray-300 text-gray-600 font-bold py-2 px-4 rounded cursor-not-allowed flex items-center justify-center gap-2">
+                                                            <span>⏸️</span> [التسجيل مغلق] - انتظر الدفعة القادمة
+                                                        </button>
+                                                    )}
+                                                </div>
+                                             </div>
+                                        );
+                                    })}
+                                </div>
+                             </div>
+                        )}
+
+                        {/* Available Courses - Elegant Card Design */}
+                         {availableCourses.length > 0 && (
+                            <div>
+                                <h3 className="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
+                                    <span>🔓</span> الدورات المتاحة للتسجيل
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {availableCourses.slice(0, 4).map(course => {
+                                        const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
+                                        const seatsLeft = course.max_students - course.current_students;
+                                        const seatColor = seatsLeft > 5 ? 'text-green-600' : seatsLeft > 2 ? 'text-orange-600' : 'text-red-600';
+
+                                        return (
+                                             <div key={course.id} className="bg-[var(--color-card)] rounded-lg shadow-md border-t-4 border-green-500 overflow-hidden hover:shadow-lg transition-shadow">
+                                                {/* Title */}
+                                                <div className="p-4 border-b border-gray-100 bg-green-50/30">
+                                                    <h4 className="font-bold text-green-900 text-md flex items-center gap-2">
+                                                        <span>📚</span> {course.name}
+                                                    </h4>
+                                                </div>
+                                                
+                                                <div className="p-4 space-y-3 text-sm">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-blue-700 flex items-center gap-1">
+                                                            {timeIcon} {course.time_slot}
+                                                        </span>
+                                                        <span className="text-cyan-700 font-mono" dir="ltr">📅 {course.start_date}</span>
+                                                    </div>
+                                                    
+                                                    <div className="flex justify-between items-center pt-2 border-t border-gray-100">
+                                                        <span className="text-purple-700 flex items-center gap-1">
+                                                            👥 الحاليون: {course.current_students}
+                                                        </span>
+                                                        <span className={`font-bold flex items-center gap-1 ${seatColor}`}>
+                                                            💺 {seatsLeft} مقعد متبقي
+                                                        </span>
+                                                    </div>
+                                                     <div className="text-xs text-center text-gray-500 pt-1">
+                                                        🎯 السعة القصوى: {course.max_students} طالب
+                                                    </div>
+                                                </div>
+
+                                                 {/* Action Button */}
+                                                <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
+                                                    <button 
+                                                        onClick={() => setActiveTab('addStudent')}
+                                                        className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition flex items-center justify-center gap-2"
+                                                    >
+                                                        <span>🚀</span> [سجل الآن] - احجز مقعدك قبل الانتهاء
+                                                    </button>
+                                                </div>
+                                             </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
             case 'students':
                 return (
                     <div className="bg-[var(--color-card)] p-4 md:p-6 rounded-lg shadow-md">
-                        <h3 className="text-xl font-bold text-[var(--color-primary)] mb-4">قائمة الطلاب المسجلين عن طريقك:</h3>
+                         <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">قائمة الطلاب المسجلين عن طريقك:</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                        </div>
                         
                         {/* Mobile Card View */}
                         <div className="space-y-4 md:hidden">
@@ -224,11 +519,21 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
                     </div>
                 );
             case 'addStudent':
-                return <RegistrationForm delegates={delegates} students={students} onAddStudent={onAddStudent} onRegistrationSuccess={() => setActiveTab('students')} delegateLockId={delegateProfile.id} />;
+                return (
+                    <div>
+                        <div className="mb-4 text-left">
+                             <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                        </div>
+                        <RegistrationForm delegates={delegates} students={students} onAddStudent={onAddStudent} onRegistrationSuccess={() => setActiveTab('students')} delegateLockId={delegateProfile.id} />
+                    </div>
+                );
             case 'addDelegate':
                  return (
                     <div className="bg-[var(--color-card)] p-8 rounded-lg shadow-md text-center">
-                        <h3 className="text-xl font-bold text-[var(--color-primary)] mb-4">🤝 إضافة مندوب جديد</h3>
+                         <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🤝 إضافة مندوب جديد</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                        </div>
                         <p className="text-[var(--color-text-muted)] mb-6">
                             يمكنك إضافة مندوبين جدد إلى فريقك. سيتم تسجيلك كمرجع لهم.
                         </p>
@@ -240,7 +545,10 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
             case 'commissions':
                 return (
                      <div className="bg-[var(--color-card)] p-4 md:p-6 rounded-lg shadow-md">
-                        <h3 className="text-xl font-bold text-[var(--color-primary)] mb-4">سجل العمولات الخاص بك:</h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">سجل العمولات الخاص بك:</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                        </div>
                         
                         {/* Mobile Card View */}
                         <div className="space-y-4 md:hidden">
@@ -296,7 +604,10 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
             case 'myNetwork':
                 return (
                      <div className="bg-[var(--color-card)] p-4 md:p-6 rounded-lg shadow-md">
-                        <h3 className="text-xl font-bold text-[var(--color-primary)] mb-4">🌐 شبكة المندوبين المسجلين بواسطتي</h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🌐 شبكة المندوبين المسجلين بواسطتي</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                        </div>
                         
                         {/* Mobile Card View */}
                          <div className="space-y-4 md:hidden">
@@ -354,7 +665,10 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
             case 'bankAccount':
                  return (
                      <div className="bg-[var(--color-card)] p-8 rounded-lg shadow-md max-w-2xl mx-auto">
-                        <h3 className="text-xl font-bold text-[var(--color-primary)] mb-4">🏦 حسابي البنكي</h3>
+                         <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🏦 حسابي البنكي</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                        </div>
                         <p className="text-[var(--color-text-muted)] mb-6">أدخل بيانات حسابك البنكي لاستلام العمولات.</p>
                         <form onSubmit={handleBankDetailsSubmit} className="space-y-4">
                              <div>
@@ -378,7 +692,10 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
             case 'profile':
                 return (
                     <div className="bg-[var(--color-card)] p-8 rounded-lg shadow-md max-w-2xl mx-auto">
-                       <h3 className="text-xl font-bold text-[var(--color-primary)] mb-4">👤 بياناتي الشخصية</h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">👤 بياناتي الشخصية</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                        </div>
                        <form onSubmit={handleProfileSubmit} className="space-y-4">
                             <div>
                                <label htmlFor="fullName" className="block font-semibold mb-2">الاسم الكامل:</label>
@@ -397,7 +714,10 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
             case 'changePassword':
                  return (
                      <div className="bg-[var(--color-card)] p-8 rounded-lg shadow-md max-w-2xl mx-auto">
-                        <h3 className="text-xl font-bold text-[var(--color-primary)] mb-4">🔐 تغيير كلمة المرور</h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🔐 تغيير كلمة المرور</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                        </div>
                         <form onSubmit={handlePasswordChangeSubmit} className="space-y-4">
                              <div>
                                 <label htmlFor="currentPassword" className="block font-semibold mb-2">كلمة المرور الحالية:</label>
@@ -424,32 +744,19 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
     return (
         <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-base)]">
              <UserStaffModal isOpen={isAddDelegateModalOpen} onClose={() => setIsAddDelegateModalOpen(false)} onSave={handleSaveDelegate} userToEdit={null} delegateToEdit={null} allowedRoles={['delegate']} />
-            <header className="bg-[var(--color-card)] shadow-md p-4 flex justify-between items-center">
-                <h1 className="text-xl font-bold text-[var(--color-primary)]">🤝 لوحة تحكم المندوب</h1>
+            <header className="bg-[var(--color-card)] shadow-md p-4 flex justify-between items-center sticky top-0 z-20">
+                <h1 className="text-lg md:text-xl font-bold text-[var(--color-primary)]">🤝 لوحة تحكم المندوب</h1>
                 <div className="flex items-center gap-4">
                     <span className="font-semibold hidden sm:inline">{currentUser.fullName}</span>
-                    <button onClick={logout} className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-2 px-4 rounded-lg hover:bg-[var(--color-secondary-hover)] transition-colors duration-300 flex items-center gap-2">
+                    <button onClick={logout} className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-1 px-3 md:py-2 md:px-4 rounded-lg hover:bg-[var(--color-secondary-hover)] transition-colors duration-300 flex items-center gap-2 text-sm md:text-base">
                         <span className="hidden sm:inline">تسجيل الخروج</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>
                     </button>
                 </div>
             </header>
             <main className="p-4 md:p-8">
                 <AppHeader />
                 <div className="mt-8">
-                    <div className="overflow-x-auto">
-                        <div className="flex border-b-2 border-[var(--color-primary)] mb-6">
-                            <TabButton label="لوحة التحكم" icon="📊" isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-                            <TabButton label="طلابي" icon="👥" isActive={activeTab === 'students'} onClick={() => setActiveTab('students')} />
-                            <TabButton label="سجل عمولاتي" icon="💰" isActive={activeTab === 'commissions'} onClick={() => setActiveTab('commissions')} />
-                            <TabButton label="شبكتي" icon="🌐" isActive={activeTab === 'myNetwork'} onClick={() => setActiveTab('myNetwork')} />
-                            <TabButton label="تسجيل طالب" icon="📝" isActive={activeTab === 'addStudent'} onClick={() => setActiveTab('addStudent')} />
-                            <TabButton label="إضافة مندوب" icon="🤝" isActive={activeTab === 'addDelegate'} onClick={() => setActiveTab('addDelegate')} />
-                            <TabButton label="حسابي البنكي" icon="🏦" isActive={activeTab === 'bankAccount'} onClick={() => setActiveTab('bankAccount')} />
-                            <TabButton label="بياناتي" icon="👤" isActive={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
-                            <TabButton label="كلمة المرور" icon="🔐" isActive={activeTab === 'changePassword'} onClick={() => setActiveTab('changePassword')} />
-                        </div>
-                    </div>
                      {notification && <Notification message={notification.message} type={notification.type} />}
                     {renderContent()}
                 </div>

@@ -237,13 +237,13 @@ const App: React.FC = () => {
   }
   
   if (currentUser.role === 'delegate') {
-      return <DelegateDashboard delegates={delegates} students={students} onAddStudent={handleAddStudent} commissions={commissions} />;
+      return <DelegateDashboard delegates={delegates} students={students} onAddStudent={handleAddStudent} commissions={commissions} courses={courses} />;
   }
 
   const renderView = () => {
     switch (activeView) {
       case 'dashboard':
-        return <Dashboard stats={dashboardStats} courses={courses} onNavigate={setActiveView} />;
+        return <Dashboard stats={dashboardStats} courses={courses} students={students} commissions={commissions} onNavigate={setActiveView} />;
       case 'students':
         return <StudentManagement delegates={delegates} students={students} onAddStudent={handleAddStudent} onEditStudent={handleEditStudent} onDeleteStudent={handleDeleteStudent} />;
       case 'delegates':
@@ -259,7 +259,7 @@ const App: React.FC = () => {
       case 'settings':
         return <Settings onCreateBackup={handleCreateBackup} onRestoreBackup={handleRestoreBackup} />;
       default:
-        return <Dashboard stats={dashboardStats} courses={courses} onNavigate={setActiveView} />;
+        return <Dashboard stats={dashboardStats} courses={courses} students={students} commissions={commissions} onNavigate={setActiveView} />;
     }
   };
 

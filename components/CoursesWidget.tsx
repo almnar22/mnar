@@ -1,9 +1,12 @@
 
 import React, { useMemo } from 'react';
-import { CourseObject, View } from '../types';
+import { CourseObject, View, Student, Commission, Role } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface CoursesWidgetProps {
     courses: CourseObject[];
+    students: Student[];
+    commissions: Commission[];
     onNavigate: (view: View) => void;
 }
 
@@ -51,47 +54,12 @@ const StatCard: React.FC<{
     );
 };
 
-export const CoursesWidget: React.FC<CoursesWidgetProps> = ({ courses, onNavigate }) => {
+export const CoursesWidget: React.FC<CoursesWidgetProps> = ({ courses, students, commissions, onNavigate }) => {
+    const { currentUser } = useAuth();
     
     const activeCourses = useMemo(() => courses.filter(c => c.status === 'active'), [courses]);
     const upcomingCourses = useMemo(() => courses.filter(c => c.status === 'upcoming'), [courses]);
     const completedCourses = useMemo(() => courses.filter(c => c.status === 'completed'), [courses]);
-
-    const stats = useMemo(() => {
-        const totalStudents = activeCourses.reduce((sum, c) => sum + c.current_students, 0);
-        
-        // Available seats only for active courses where enrollment is open
-        const availableSeats = activeCourses
-            .filter(c => c.enrollment_open)
-            .reduce((sum, c) => sum + (c.max_students - c.current_students), 0);
-
-        // Calculate Occupancy Rate: Total Students / (Total Students + Available Seats)
-        const totalCapacity = totalStudents + availableSeats;
-        const occupancyRate = totalCapacity > 0 ? (totalStudents / totalCapacity) * 100 : 0;
-
-        // Courses starting this week (within next 7 days)
-        const now = new Date();
-        const nextWeek = new Date();
-        nextWeek.setDate(now.getDate() + 7);
-        const startingThisWeek = upcomingCourses.filter(c => {
-            const startDate = new Date(c.start_date);
-            return startDate >= now && startDate <= nextWeek;
-        }).length;
-
-        // Full courses
-        const fullCourses = activeCourses.filter(c => c.current_students >= c.max_students).length;
-
-        return {
-            active: activeCourses.length,
-            upcoming: upcomingCourses.length,
-            totalStudents,
-            availableSeats,
-            occupancyRate,
-            startingThisWeek,
-            fullCourses,
-            completed: completedCourses.length
-        };
-    }, [activeCourses, upcomingCourses, completedCourses]);
 
     const calculateProgress = (course: CourseObject) => {
         if (course.status === 'upcoming') return 0;
@@ -116,212 +84,250 @@ export const CoursesWidget: React.FC<CoursesWidgetProps> = ({ courses, onNavigat
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
         return diffDays;
     }
+    
+    const getDaysUntilStart = (dateStr: string) => {
+        const target = new Date(dateStr);
+        const today = new Date();
+        const diffTime = target.getTime() - today.getTime();
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
 
-    return (
-        <div className="mt-8 bg-[var(--color-card)] p-6 rounded-lg shadow-md border-t-4 border-[var(--color-primary)]">
-             <div className="flex items-center justify-between mb-6 border-b border-[var(--color-border)] pb-4">
-                <h2 className="text-2xl font-bold text-[var(--color-primary)]">🎯 لوحة متابعة الدورات</h2>
-                <button onClick={() => onNavigate('courses')} className="text-sm text-blue-600 hover:underline font-bold">عرض الكل ⬅</button>
-            </div>
-
-            {/* Enhanced Statistics Grid - Matching Prompt Design */}
-            <div className="mb-8">
-                <h3 className="text-lg font-bold text-[var(--color-primary)] mb-4 flex items-center gap-2">
-                    <span>📊</span> إحصائيات الدورات التعليمية
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {/* Row 1 */}
-                    <StatCard 
-                        title="نشطة الآن" 
-                        value={`${stats.active} دورة`} 
-                        icon="🟢" 
-                        theme="green" 
-                    />
-                    <StatCard 
-                        title="قادمة قريباً" 
-                        value={`${stats.upcoming} دورة`} 
-                        icon="🟡" 
-                        theme="orange" 
-                    />
-                    <StatCard 
-                        title="إجمالي الطلاب" 
-                        value={`${stats.totalStudents} طالب`} 
-                        icon="👥" 
-                        theme="blue" 
-                    />
-                    <StatCard 
-                        title="مقاعد متاحة" 
-                        value={`${stats.availableSeats} مقعد`} 
-                        icon="💺" 
-                        theme="purple" 
-                    />
-                    
-                    {/* Row 2 */}
-                    <StatCard 
-                        title="نسبة الإشغال" 
-                        value={`${stats.occupancyRate.toFixed(0)}%`} 
-                        icon="📊" 
-                        theme="cyan" 
-                    />
-                     <StatCard 
-                        title="دورات مكتملة" 
-                        value={`${stats.fullCourses} دورة`} 
-                        subtext="لا توجد مقاعد شاغرة"
-                        icon="✅" 
-                        theme="green" 
-                    />
-                    <StatCard 
-                        title="تبدأ هذا الأسبوع" 
-                        value={`${stats.startingThisWeek} دورة`} 
-                        icon="🎯" 
-                        theme="orange" 
-                    />
-                    <StatCard 
-                        title="دورات منتهية" 
-                        value={`${stats.completed} دورة`} 
-                        icon="🔴" 
-                        theme="red" 
-                    />
+    // --- ADMIN VIEW ---
+    const renderAdminView = () => {
+        const totalStudents = activeCourses.reduce((sum, c) => sum + c.current_students, 0);
+        
+        return (
+            <div className="mt-8 bg-[var(--color-card)] p-6 rounded-lg shadow-md border-t-4 border-[var(--color-primary)]">
+                <div className="flex items-center justify-between mb-6 border-b border-[var(--color-border)] pb-4">
+                    <h2 className="text-2xl font-bold text-[var(--color-primary)]">🎯 لوحة متابعة الدورات - الإدارة</h2>
+                    <button onClick={() => onNavigate('courses')} className="text-sm text-blue-600 hover:underline font-bold">عرض الكل ⬅</button>
                 </div>
-            </div>
-            
-            {/* Active Courses - Green Theme */}
-            <div className="mb-8">
-                <h3 className="text-lg font-bold text-green-700 mb-4 flex items-center gap-2 border-b border-green-100 pb-2">
-                    <span>🟢</span> الدورات النشطة حالياً
-                </h3>
-                {activeCourses.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {activeCourses.map(course => {
-                            const progress = calculateProgress(course);
-                            const timeIcon = course.time_slot.includes('صباحي') ? "☀️" : "🌙";
-                            
-                            return (
-                                <div key={course.id} className="bg-[var(--color-card)] p-4 rounded-lg shadow-sm border border-green-200 hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-bold text-green-800 flex items-center gap-2">
-                                            <span>📚</span> {course.name}
-                                        </h4>
-                                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-bold">نشطة</span>
-                                    </div>
-                                    
-                                    <div className="mb-3">
-                                        <div className="flex justify-between text-xs font-bold text-[var(--color-text-muted)] mb-1">
-                                            <span>⏳ التقدم</span>
-                                            <span>{progress}%</span>
+
+                {/* Admin Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <StatCard title="نشطة الآن" value={`${activeCourses.length} دورة`} icon="🟢" theme="green" />
+                    <StatCard title="قادمة قريباً" value={`${upcomingCourses.length} دورة`} icon="🟡" theme="orange" />
+                    <StatCard title="منتهية" value={`${completedCourses.length} دورة`} icon="🔵" theme="blue" />
+                    <StatCard title="إجمالي الطلاب" value={`${totalStudents} طالب`} icon="👥" theme="purple" />
+                </div>
+
+                {/* Active Courses List */}
+                {activeCourses.length > 0 && (
+                    <div className="mb-8">
+                        <h3 className="text-lg font-bold text-green-700 mb-4 flex items-center gap-2">
+                            <span>🟢</span> جميع الدورات النشطة
+                        </h3>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {activeCourses.slice(0, 4).map(course => {
+                                const progress = calculateProgress(course);
+                                const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
+                                const remainingDays = Math.max(0, getDaysRemaining(course.end_date));
+
+                                return (
+                                    <div key={course.id} className="bg-[var(--color-card)] rounded-lg shadow-md border-t-4 border-green-500 overflow-hidden transition-transform hover:scale-[1.01]">
+                                        {/* Header */}
+                                        <div className="p-4 border-b border-gray-100 bg-green-50/50">
+                                            <h4 className="font-bold text-lg text-green-800 flex items-center gap-2">
+                                                <span>📚</span> {course.name}
+                                            </h4>
                                         </div>
-                                        <ProgressBar percentage={progress} />
-                                    </div>
+                                        
+                                        {/* Body */}
+                                        <div className="p-5 space-y-4">
+                                            {/* Progress */}
+                                            <div>
+                                                <div className="flex justify-between text-sm font-bold text-blue-700 mb-1">
+                                                    <span>⏳ التقدم:</span>
+                                                    <span>{progress}% مكتمل</span>
+                                                </div>
+                                                <ProgressBar percentage={progress} />
+                                            </div>
 
-                                    <div className="space-y-2 text-sm text-[var(--color-text-base)]">
-                                        <p className="flex justify-between items-center">
-                                            <span className="text-orange-600 font-semibold">{timeIcon} الوقت:</span>
-                                            <span>{course.time_slot}</span>
-                                        </p>
-                                        <p className="flex justify-between items-center">
-                                            <span className="text-purple-600 font-semibold">👥 الطلاب:</span>
-                                            <span>{course.current_students}/{course.max_students}</span>
-                                        </p>
-                                        <p className="flex justify-between items-center">
-                                            <span className="text-[var(--color-primary)] font-semibold">📅 المتبقي:</span>
-                                            <span>{getDaysRemaining(course.end_date)} يوم</span>
-                                        </p>
+                                            {/* Details Row */}
+                                            <div className="flex flex-wrap justify-between items-center text-sm gap-2">
+                                                <span className="flex items-center gap-2 text-orange-700 font-semibold bg-orange-50 px-3 py-1 rounded-full">
+                                                    <span>{timeIcon}</span> {course.time_slot}
+                                                </span>
+                                                <span className="flex items-center gap-2 text-purple-700 font-semibold bg-purple-50 px-3 py-1 rounded-full">
+                                                    <span>👥</span> {course.current_students}/{course.max_students}
+                                                </span>
+                                            </div>
+                                             <div className="flex justify-between items-center text-sm border-t border-gray-100 pt-3 mt-2">
+                                                <span className="text-cyan-700 font-bold flex items-center gap-1">
+                                                    <span>📅</span> {remainingDays} يوم متبقي
+                                                </span>
+                                                <span className="text-green-600 font-bold bg-green-100 px-2 py-1 rounded flex items-center gap-1">
+                                                    <span>✅</span> نشطة - مقاعد متاحة
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Footer Button */}
+                                        <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
+                                            <button 
+                                                onClick={() => onNavigate('students')}
+                                                className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                            >
+                                                <span>🎯</span> [سجل الآن] - انضم إلى الدورة
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="text-center py-6 bg-green-50 rounded-lg border border-green-100 text-green-700">
-                        لا توجد دورات نشطة حالياً
-                    </div>
-                )}
-            </div>
-
-            {/* Upcoming Courses - Orange Theme */}
-            <div>
-                <h3 className="text-lg font-bold text-orange-700 mb-4 flex items-center gap-2 border-b border-orange-100 pb-2">
-                    <span>🟡</span> الدورات القادمة
-                </h3>
-                {upcomingCourses.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {upcomingCourses.map(course => {
-                             const daysUntil = getDaysRemaining(course.start_date);
-                             const timeIcon = course.time_slot.includes('صباحي') ? "☀️" : "🌙";
-                             const statusIcon = course.enrollment_open ? "🔓" : "🔒";
-
-                             return (
-                                <div key={course.id} className="bg-[var(--color-card)] p-4 rounded-lg shadow-sm border border-orange-200 hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="font-bold text-orange-800 flex items-center gap-2">
-                                            <span>🎯</span> {course.name}
-                                        </h4>
-                                        <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full font-bold">قادمة</span>
-                                    </div>
-                                    
-                                    <div className="space-y-2 text-sm text-[var(--color-text-base)] mt-3">
-                                        <p className="flex justify-between items-center">
-                                            <span className="text-[var(--color-primary)] font-semibold">📅 الانطلاق:</span> 
-                                            <span dir="ltr" className="font-bold">{course.start_date} ({daysUntil} يوم)</span>
-                                        </p>
-                                        <p className="flex justify-between items-center">
-                                            <span className="text-orange-600 font-semibold">{timeIcon} الوقت:</span>
-                                            <span>{course.time_slot}</span>
-                                        </p>
-                                        <p className="flex justify-between items-center">
-                                            <span className={`font-bold ${course.enrollment_open ? 'text-green-600' : 'text-red-600'}`}>
-                                                {statusIcon} التسجيل:
-                                            </span> 
-                                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${course.enrollment_open ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                {course.enrollment_open ? 'مفتوح' : 'مغلق'}
-                                            </span>
-                                        </p>
-                                        <p className="flex justify-between items-center">
-                                            <span className="text-purple-600 font-semibold">👥 المسجلين:</span>
-                                            <span>{course.current_students}/{course.max_students}</span>
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                     <div className="text-center py-6 bg-orange-50 rounded-lg border border-orange-100 text-orange-700">
-                        لا توجد دورات قادمة
+                                );
+                            })}
+                        </div>
                     </div>
                 )}
-            </div>
 
-            {/* Quick Actions - Functional */}
-            <div className="mt-8 pt-6 border-t-2 border-[var(--color-border)]">
-                <h3 className="text-lg font-bold text-[var(--color-primary)] mb-4">⚡ إجراءات سريعة:</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                    <button 
-                        onClick={() => onNavigate('students')} 
-                        className="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md"
-                    >
-                        <span>📝</span> تسجيل طالب
-                    </button>
-                    <button 
-                        onClick={() => onNavigate('courses')} 
-                        className="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md"
-                    >
-                        <span>📅</span> جدول الدورات
-                    </button>
-                    <button 
-                        onClick={() => onNavigate('commissions')} 
-                        className="bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md"
-                    >
-                        <span>👥</span> إدارة التسجيلات
-                    </button>
-                    <button 
-                        onClick={() => onNavigate('dashboard')} 
-                        className="bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md"
-                    >
-                        <span>↩</span> تحديث
-                    </button>
+                {/* Upcoming Courses List */}
+                {upcomingCourses.length > 0 && (
+                    <div className="mb-8">
+                         <h3 className="text-lg font-bold text-orange-700 mb-4 flex items-center gap-2">
+                            <span>🟡</span> الدورات القادمة
+                         </h3>
+                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {upcomingCourses.slice(0, 4).map(course => {
+                                const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
+                                const daysUntil = getDaysUntilStart(course.start_date);
+                                const seatsLeft = course.max_students - course.current_students;
+                                const statusColor = course.enrollment_open ? "text-green-600" : "text-red-600";
+                                const statusBg = course.enrollment_open ? "bg-green-100" : "bg-red-100";
+                                const statusIcon = course.enrollment_open ? "🔓" : "🔒";
+                                
+                                return (
+                                    <div key={course.id} className="bg-[var(--color-card)] rounded-lg shadow-md border-t-4 border-orange-500 overflow-hidden transition-transform hover:scale-[1.01]">
+                                        {/* Header */}
+                                        <div className="p-4 border-b border-gray-100 bg-orange-50/50">
+                                            <h4 className="font-bold text-lg text-orange-800 flex items-center gap-2">
+                                                <span>🎯</span> {course.name}
+                                            </h4>
+                                        </div>
+                                        
+                                        {/* Body */}
+                                        <div className="p-5 space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-blue-700 font-semibold flex items-center gap-1">
+                                                    <span>📅</span> ينطلق بعد {daysUntil} يوم
+                                                </span>
+                                                <span className="text-cyan-700 text-sm font-mono" dir="ltr">التاريخ: {course.start_date}</span>
+                                            </div>
+                                            
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-orange-700 font-semibold flex items-center gap-1">
+                                                    <span>{timeIcon}</span> {course.time_slot}
+                                                </span>
+                                                <span className="text-purple-700 font-semibold flex items-center gap-1">
+                                                     <span>💺</span> {seatsLeft} مقعد متبقي
+                                                </span>
+                                            </div>
+
+                                            <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                                                <span className={`font-bold flex items-center gap-1 px-3 py-1 rounded-full text-sm ${statusColor} ${statusBg}`}>
+                                                    {statusIcon} التسجيل: {course.enrollment_open ? 'مفتوح' : 'مغلق'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Footer Button */}
+                                        <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
+                                            {course.enrollment_open ? (
+                                                <button 
+                                                    onClick={() => onNavigate('students')}
+                                                    className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                                >
+                                                    <span>🎯</span> [احجز مقعدك] - سجل قبل انتهاء المقاعد
+                                                </button>
+                                            ) : (
+                                                <button 
+                                                    disabled
+                                                    className="w-full bg-gray-300 text-gray-600 font-bold py-2 px-4 rounded-lg cursor-not-allowed flex items-center justify-center gap-2"
+                                                >
+                                                    <span>⏸️</span> [التسجيل مغلق] - انتظر الدفعة القادمة
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                         </div>
+                    </div>
+                )}
+
+                {/* Admin Quick Actions */}
+                <div className="mt-8 pt-6 border-t-2 border-[var(--color-border)]">
+                    <h3 className="text-lg font-bold text-purple-700 mb-4">⚡ إجراءات إدارية سريعة:</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        <button onClick={() => onNavigate('courses')} className="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md">📝 إنشاء دورة جديدة</button>
+                        <button onClick={() => onNavigate('courses')} className="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md">📅 إدارة جدول الدورات</button>
+                        <button onClick={() => onNavigate('reports')} className="bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md">👥 إحصاءات التسجيلات</button>
+                        <button onClick={() => onNavigate('reports')} className="bg-cyan-600 text-white py-3 px-4 rounded-lg hover:bg-cyan-700 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md">📊 تقرير الأداء الشامل</button>
+                    </div>
                 </div>
             </div>
-        </div>
-    );
+        );
+    };
+
+    // --- MANAGER VIEW ---
+    const renderManagerView = () => {
+        const enrollmentOpenCount = [...activeCourses, ...upcomingCourses].filter(c => c.enrollment_open).length;
+        
+        const availableSeats = [...activeCourses, ...upcomingCourses]
+            .filter(c => c.enrollment_open)
+            .reduce((sum, c) => sum + (c.max_students - c.current_students), 0);
+            
+        const totalSeats = [...activeCourses, ...upcomingCourses]
+            .filter(c => c.enrollment_open)
+            .reduce((sum, c) => sum + c.max_students, 0);
+
+        const occupancyRate = totalSeats > 0 ? ((totalSeats - availableSeats) / totalSeats * 100).toFixed(0) : '0';
+        
+        const coursesNeedingAttention = activeCourses.filter(c => c.enrollment_open && (c.max_students - c.current_students) <= 3);
+
+        return (
+            <div className="mt-8 bg-[var(--color-card)] p-6 rounded-lg shadow-md border-t-4 border-[var(--color-primary)]">
+                <h2 className="text-2xl font-bold text-[var(--color-primary)] mb-6 pb-4 border-b border-[var(--color-border)]">🎯 متابعة الدورات - التسجيلات</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                     <StatCard title="دورات قيد التسجيل" value={`${enrollmentOpenCount} دورة`} icon="👥" theme="green" />
+                     <StatCard title="مقاعد شاغرة" value={`${availableSeats} مقعد`} icon="🎯" theme="orange" />
+                     <StatCard title="نسبة الإشغال" value={`${occupancyRate}%`} icon="📊" theme="purple" />
+                </div>
+
+                {coursesNeedingAttention.length > 0 && (
+                    <div className="mb-8">
+                        <h3 className="text-lg font-bold text-red-600 mb-4">⚠️ دورات تحتاج متابعة:</h3>
+                        <div className="space-y-3">
+                            {coursesNeedingAttention.map(course => (
+                                <div key={course.id} className="flex justify-between items-center p-3 bg-red-50 rounded border border-red-200">
+                                    <span className="font-bold text-red-800">📚 {course.name}</span>
+                                    <span className="font-bold text-gray-700">👥 {course.current_students}/{course.max_students}</span>
+                                    <span className="text-sm font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded">مقاعد قليلة!</span>
+                                    <button onClick={() => onNavigate('students')} className="bg-red-600 text-white text-xs px-3 py-1 rounded hover:bg-red-700">سجل الآن</button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div className="mt-8 pt-6 border-t-2 border-[var(--color-border)]">
+                    <h3 className="text-lg font-bold text-green-700 mb-4">⚡ إجراءات تسجيل سريعة:</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        <button onClick={() => onNavigate('students')} className="bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md">📝 تسجيل طالب في دورة</button>
+                        <button onClick={() => onNavigate('commissions')} className="bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md">👥 إدارة تسجيلات دورة</button>
+                        <button onClick={() => onNavigate('courses')} className="bg-orange-500 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md">🎫 فتح/غلق التسجيل</button>
+                        <button onClick={() => onNavigate('reports')} className="bg-cyan-600 text-white py-3 px-4 rounded-lg hover:bg-cyan-700 transition flex items-center justify-center gap-2 text-sm font-bold shadow-md">📋 كشف التسجيلات</button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    if (!currentUser) return null;
+
+    if (currentUser.role === 'admin') {
+        return renderAdminView();
+    } else if (currentUser.role === 'manager') {
+        return renderManagerView();
+    }
+    // Delegates have their own dashboard
+    return null;
 };

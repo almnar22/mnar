@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { CourseObject, View } from '../types';
+import { CourseObject, View, Student, Commission } from '../types';
 import { CoursesWidget } from './CoursesWidget';
 
 interface DashboardStats {
@@ -14,6 +14,8 @@ interface DashboardStats {
 interface DashboardProps {
     stats: DashboardStats;
     courses: CourseObject[];
+    students: Student[];
+    commissions: Commission[];
     onNavigate: (view: View) => void;
 }
 
@@ -45,7 +47,7 @@ const actionIcons: Record<string, string> = {
     enroll: '📝'
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ stats, courses, onNavigate }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ stats, courses, students, commissions, onNavigate }) => {
   const { activityLogs } = useAuth();
 
   // Get last 5 activities
@@ -97,7 +99,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ stats, courses, onNavigate
       </div>
       
       {/* Courses Widget */}
-      <CoursesWidget courses={courses} onNavigate={onNavigate} />
+      <CoursesWidget 
+        courses={courses} 
+        students={students} 
+        commissions={commissions} 
+        onNavigate={onNavigate} 
+      />
 
       <div className="mt-8">
         {/* Recent Activity */}
