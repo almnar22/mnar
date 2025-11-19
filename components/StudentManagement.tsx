@@ -477,11 +477,11 @@ const StudentLog: React.FC<{
         }
     };
     
-    const SortableHeader: React.FC<{ sortKey: SortableKeys | 'schedule'; children: React.ReactNode }> = ({ sortKey, children }) => {
-        const isActive = sortConfig.key === sortKey as SortableKeys;
+    const SortableHeader: React.FC<{ sortKey: SortableKeys; children: React.ReactNode }> = ({ sortKey, children }) => {
+        const isActive = sortConfig.key === sortKey;
         const icon = isActive ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : '↕';
         return (
-            <th className="p-3 font-semibold cursor-pointer select-none text-[var(--color-primary-text)] whitespace-nowrap bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] transition-colors" onClick={() => requestSort(sortKey as SortableKeys)}>
+            <th className="p-3 font-semibold cursor-pointer select-none text-[var(--color-primary-text)] whitespace-nowrap bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] transition-colors" onClick={() => requestSort(sortKey)}>
                 <div className="flex items-center justify-start gap-2">
                     <span>{children}</span>
                     <span className="opacity-70 text-xs">{icon}</span>
@@ -539,72 +539,42 @@ const StudentLog: React.FC<{
                     {delegates.map(d => <option key={d.id} value={d.id}>{d.fullName}</option>)}
                 </select>
             </div>
-
-            {/* Mobile Card View - Enhanced to show ALL info vertically */}
-            <div className="md:hidden space-y-4">
+            
+            {/* Mobile Card View */}
+            <div className="space-y-4 md:hidden">
                 {sortedAndFilteredStudents.map((student) => (
-                    <div key={student.id} className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden">
-                        <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-background)]/30 flex justify-between items-center">
-                            <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs font-bold">#{student.id}</span>
-                            <span className="text-xs text-[var(--color-text-muted)]">{student.registrationDate}</span>
+                    <div key={student.id} className="bg-[var(--color-background)] p-4 rounded-lg border border-[var(--color-border)] shadow-sm">
+                        <div className="flex justify-between items-start mb-2">
+                             <div>
+                                <p className="font-bold text-[var(--color-primary)] text-lg">{student.firstName} {student.lastName}</p>
+                                <p className="text-xs text-[var(--color-text-muted)]">{student.phone}</p>
+                            </div>
+                            <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-lg font-bold">{student.course}</span>
                         </div>
                         
-                        <div className="p-4 space-y-3">
-                             {/* Name */}
-                            <div>
-                                <p className="text-xs text-[var(--color-text-muted)] font-bold">الاسم الرباعي</p>
-                                <p className="font-bold text-[var(--color-primary)] text-lg leading-tight">
-                                    {student.firstName} {student.secondName} {student.thirdName} {student.lastName}
-                                </p>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                {/* Phone */}
-                                <div>
-                                    <p className="text-xs text-[var(--color-text-muted)] font-bold">رقم الهاتف</p>
-                                    <p className="font-mono font-bold text-[var(--color-text-base)]" dir="ltr">{student.phone}</p>
-                                </div>
-                                {/* Time */}
-                                <div>
-                                    <p className="text-xs text-[var(--color-text-muted)] font-bold">التوقيت</p>
-                                    <p className="font-bold text-purple-700">{student.schedule}</p>
-                                </div>
-                            </div>
-                            
-                            {/* Course */}
-                            <div>
-                                <p className="text-xs text-[var(--color-text-muted)] font-bold mb-1">الدورة</p>
-                                <span className="inline-block bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-sm font-bold border border-blue-100 w-full text-center">
-                                    {student.course}
-                                </span>
-                            </div>
-
-                            {/* Delegate */}
-                            <div>
-                                <p className="text-xs text-[var(--color-text-muted)] font-bold">المندوب</p>
-                                <p className="font-bold text-[var(--color-secondary)]">{getDelegateName(student.delegateId)}</p>
-                            </div>
-                        </div>
+                         <div className="flex flex-wrap gap-2 text-xs mb-3 text-[var(--color-text-base)]">
+                             <span className="bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
+                                📅 {student.registrationDate}
+                            </span>
+                            <span className="bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
+                                ⏰ {student.schedule}
+                            </span>
+                            <span className="bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
+                                🤝 {getDelegateName(student.delegateId)}
+                            </span>
+                         </div>
 
                         {currentUser?.role === 'admin' && (
-                            <div className="p-3 bg-[var(--color-background)] border-t border-[var(--color-border)] flex gap-2">
-                                <button onClick={() => handleEditClick(student)} className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg text-sm font-bold hover:bg-blue-200 transition">
-                                    ✏️ تعديل
-                                </button>
-                                <button onClick={() => handleDeleteClick(student.id)} className="flex-1 bg-red-100 text-red-700 py-2 rounded-lg text-sm font-bold hover:bg-red-200 transition">
-                                    🗑️ حذف
-                                </button>
+                             <div className="flex gap-2 pt-3 border-t border-[var(--color-border)]">
+                                <button onClick={() => handleEditClick(student)} className="flex-1 text-blue-600 bg-blue-50 hover:bg-blue-100 py-2 rounded-lg text-sm font-bold transition-colors">✏️ تعديل</button>
+                                <button onClick={() => handleDeleteClick(student.id)} className="flex-1 text-red-600 bg-red-50 hover:bg-red-100 py-2 rounded-lg text-sm font-bold transition-colors">🗑️ حذف</button>
                             </div>
                         )}
                     </div>
                 ))}
-                {sortedAndFilteredStudents.length === 0 && (
-                    <div className="text-center p-8 text-[var(--color-text-muted)] bg-[var(--color-background)] rounded-xl border border-dashed border-[var(--color-border)]">
-                        لا توجد بيانات لعرضها.
-                    </div>
-                )}
+                {sortedAndFilteredStudents.length === 0 && <div className="text-center p-8 text-[var(--color-text-muted)]">لا توجد بيانات لعرضها.</div>}
             </div>
-            
+
             {/* Desktop Table View */}
             <div className="overflow-x-auto hidden md:block rounded-xl border border-[var(--color-border)] shadow-sm">
                 <table className="w-full text-right border-collapse">
@@ -614,7 +584,6 @@ const StudentLog: React.FC<{
                             <SortableHeader sortKey="fullName">الاسم الرباعي</SortableHeader>
                             <SortableHeader sortKey="phone">الهاتف</SortableHeader>
                             <SortableHeader sortKey="course">الدورة</SortableHeader>
-                            <SortableHeader sortKey="schedule">الوقت</SortableHeader>
                             <SortableHeader sortKey="delegateName">المندوب</SortableHeader>
                             <SortableHeader sortKey="registrationDate">تاريخ التسجيل</SortableHeader>
                             {currentUser?.role === 'admin' && <th className="p-3 font-semibold whitespace-nowrap bg-[var(--color-primary)]">إجراءات</th>}
@@ -627,7 +596,6 @@ const StudentLog: React.FC<{
                                 <td className="p-4 font-bold text-[var(--color-text-base)]">{`${student.firstName} ${student.secondName} ${student.thirdName} ${student.lastName}`}</td>
                                 <td className="p-4 font-mono text-sm">{student.phone}</td>
                                 <td className="p-4"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">{student.course}</span></td>
-                                <td className="p-4"><span className="bg-purple-50 text-purple-700 px-2 py-1 rounded text-xs font-bold">{student.schedule}</span></td>
                                 <td className="p-4 font-medium text-[var(--color-secondary)]">{getDelegateName(student.delegateId)}</td>
                                 <td className="p-4 font-mono text-sm text-gray-500">{student.registrationDate}</td>
                                 {currentUser?.role === 'admin' && (
@@ -690,23 +658,30 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({ delegates,
 const InputField: React.FC<{ label: string; id: string; type?: string; className?: string; value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; }> = ({ label, id, type = 'text', className = '', value, onChange }) => (
     <div className={className}>
         <label htmlFor={id} className="block text-sm font-bold mb-2 text-[var(--color-text-muted)]">{label}</label>
-        <input type={type} id={id} name={id} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-background)]" value={value} onChange={onChange} />
+        <input type={type} id={id} name={id} value={value} onChange={onChange} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-background)]" />
     </div>
 );
 
-const SelectField: React.FC<{ id: string; options: { value: string; label: string }[], label?: string; value?: string; onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void; }> = ({ id, options, label, value, onChange }) => (
+const SelectField: React.FC<{ 
+    label: string; 
+    id: string; 
+    options: { value: string; label: string }[]; 
+    value?: string; 
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void; 
+}> = ({ label, id, options, value, onChange }) => (
     <div>
-        {label && <label htmlFor={id} className="block text-sm font-bold mb-2 text-[var(--color-text-muted)]">{label}</label>}
-        <div className="relative">
-            <select id={id} name={id} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-background)] appearance-none" value={value} onChange={onChange}>
-                <option value="">-- اختر --</option>
-                {options.map((option, index) => <option key={index} value={option.value}>{option.label}</option>)}
-            </select>
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
-                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-            </div>
-        </div>
+        <label htmlFor={id} className="block text-sm font-bold mb-2 text-[var(--color-text-muted)]">{label}</label>
+        <select 
+            id={id} 
+            name={id} 
+            value={value} 
+            onChange={onChange} 
+            required 
+            className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-background)]"
+        >
+            {options.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+        </select>
     </div>
 );

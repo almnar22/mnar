@@ -10,81 +10,89 @@ import { Reports } from './components/Reports';
 import { Settings } from './components/Settings';
 import { ActivityLogs } from './components/ActivityLogs';
 import { CourseManagement } from './components/CourseManagement';
-import { NotificationsPage } from './components/NotificationsPage';
+import { NotificationsPage } from './components/NotificationsPage'; // Import Notification Page
 import type { View, Student, Commission, Delegate, BackupData, CourseObject } from './types';
 import { Course, Schedule, CommissionStatus, StudentStatus } from './types';
 import { useAuth } from './contexts/AuthContext';
-import { useNotification } from './contexts/NotificationContext';
+import { useNotification } from './contexts/NotificationContext'; // Import hook
 import { Login } from './components/Login';
 import { DelegateDashboard } from './components/DelegateDashboard';
 
-// Default data only used if localStorage is empty
 const initialStudentsData: Student[] = [
+    // Students for abdulmalek (delegateId: 3)
     { id: 1, firstName: 'أحمد', secondName: 'علي', thirdName: 'محمد', lastName: 'الشهري', phone: '0511111111', course: Course.Computer, schedule: Schedule.Evening, delegateId: 3, registrationDate: '2024-07-10' },
     { id: 2, firstName: 'فاطمة', secondName: 'عبدالله', thirdName: 'حسن', lastName: 'الغامدي', phone: '0511111112', course: Course.English, schedule: Schedule.Morning, delegateId: 3, registrationDate: '2024-07-12' },
     { id: 3, firstName: 'خالد', secondName: 'سعيد', thirdName: 'عمر', lastName: 'القحطاني', phone: '0511111113', course: Course.Maintenance, schedule: Schedule.Both, delegateId: 3, registrationDate: '2024-07-15' },
+    // Students for hadiya (delegateId: 4)
+    { id: 4, firstName: 'سارة', secondName: 'محمد', thirdName: 'سالم', lastName: 'العتيبي', phone: '0511111114', course: Course.Accounting, schedule: Schedule.Morning, delegateId: 4, registrationDate: '2024-07-18' },
+    { id: 5, firstName: 'عمر', secondName: 'أحمد', thirdName: 'علي', lastName: 'الحربي', phone: '0511111115', course: Course.Graphics, schedule: Schedule.Evening, delegateId: 4, registrationDate: '2024-07-20' },
+    // Students for mhajri (delegateId: 5)
+    { id: 6, firstName: 'نورة', secondName: 'عبدالعزيز', thirdName: 'فهد', lastName: 'الشمري', phone: '0511111116', course: Course.Reading, schedule: Schedule.Morning, delegateId: 5, registrationDate: '2024-06-25' },
+    { id: 7, firstName: 'ياسر', secondName: 'فهد', thirdName: 'ناصر', lastName: 'المطيري', phone: '0511111117', course: Course.Computer, schedule: Schedule.Both, delegateId: 5, registrationDate: '2024-06-28' },
+    // Students for ammar (delegateId: 6)
+    { id: 8, firstName: 'لينا', secondName: 'محسن', thirdName: 'سعيد', lastName: 'الغامدي', phone: '0511111118', course: Course.English, schedule: Schedule.Evening, delegateId: 6, registrationDate: '2024-07-22' },
+    // Students for najla (delegateId: 7)
+    { id: 9, firstName: 'ريماس', secondName: 'نواف', thirdName: 'بدر', lastName: 'الثبيتي', phone: '0511111119', course: Course.Custom, schedule: Schedule.Morning, delegateId: 7, registrationDate: '2024-07-25' },
+    { id: 10, firstName: 'بدر', secondName: 'ناصر', thirdName: 'خالد', lastName: 'السعدي', phone: '0511111120', course: Course.Maintenance, schedule: Schedule.Evening, delegateId: 7, registrationDate: '2024-07-28' },
 ];
 
 const initialCommissions: Commission[] = [
     { id: 1, studentId: 1, delegateId: 3, studentName: 'أحمد علي محمد الشهري', course: Course.Computer, amount: 500, status: CommissionStatus.Paid, studentStatus: StudentStatus.Completed, createdDate: '2024-07-10', paidDate: '2024-07-20' },
     { id: 2, studentId: 2, delegateId: 3, studentName: 'فاطمة عبدالله حسن الغامدي', course: Course.English, amount: 500, status: CommissionStatus.Confirmed, studentStatus: StudentStatus.Studying, createdDate: '2024-07-12', confirmedDate: '2024-07-18' },
     { id: 3, studentId: 3, delegateId: 3, studentName: 'خالد سعيد عمر القحطاني', course: Course.Maintenance, amount: 500, status: CommissionStatus.Pending, studentStatus: StudentStatus.FeesPaid, createdDate: '2024-07-15' },
+    { id: 4, studentId: 4, delegateId: 4, studentName: 'سارة محمد سالم العتيبي', course: Course.Accounting, amount: 500, status: CommissionStatus.Confirmed, studentStatus: StudentStatus.Studying, createdDate: '2024-07-18', confirmedDate: '2024-07-22' },
+    { id: 5, studentId: 5, delegateId: 4, studentName: 'عمر أحمد علي الحربي', course: Course.Graphics, amount: 500, status: CommissionStatus.Cancelled, studentStatus: StudentStatus.Dropped, createdDate: '2024-07-20' },
+    { id: 6, studentId: 6, delegateId: 5, studentName: 'نورة عبدالعزيز فهد الشمري', course: Course.Reading, amount: 500, status: CommissionStatus.Paid, studentStatus: StudentStatus.Completed, createdDate: '2024-06-25', paidDate: '2024-07-05' },
+    { id: 7, studentId: 7, delegateId: 5, studentName: 'ياسر فهد ناصر المطيري', course: Course.Computer, amount: 500, status: CommissionStatus.Pending, studentStatus: StudentStatus.OnHold, createdDate: '2024-06-28' },
+    { id: 8, studentId: 8, delegateId: 6, studentName: 'لينا محسن سعيد الغامدي', course: Course.English, amount: 500, status: CommissionStatus.Pending, studentStatus: StudentStatus.Registered, createdDate: '2024-07-22' },
+    { id: 9, studentId: 9, delegateId: 7, studentName: 'ريماس نواف بدر الثبيتي', course: Course.Custom, amount: 500, status: CommissionStatus.Pending, studentStatus: StudentStatus.FeesPaid, createdDate: '2024-07-25' },
+    { id: 10, studentId: 10, delegateId: 7, studentName: 'بدر ناصر خالد السعدي', course: Course.Maintenance, amount: 500, status: CommissionStatus.Confirmed, studentStatus: StudentStatus.Studying, createdDate: '2024-07-28', confirmedDate: '2024-07-30' },
 ];
 
 const initialCourses: CourseObject[] = [
     { id: 1, name: 'دورة الحاسوب المتقدم', description: 'دورة شاملة في أساسيات الحاسوب والأوفيس', category: 'حاسوب', duration: 4, price: 1000, current_students: 18, max_students: 25, time_slot: 'صباحي', start_date: '2024-01-10', end_date: '2024-02-20', enrollment_open: true, status: 'active' },
     { id: 2, name: 'دورة اللغة الإنجليزية', description: 'مستويات متعددة في اللغة الإنجليزية', category: 'لغات', duration: 6, price: 1200, current_students: 22, max_students: 22, time_slot: 'مسائي', start_date: '2024-01-05', end_date: '2024-02-15', enrollment_open: false, status: 'active' },
     { id: 3, name: 'دورة المحاسبة', description: 'أساسيات المحاسبة المالية والإدارية', category: 'إدارة', duration: 5, price: 1500, current_students: 12, max_students: 20, time_slot: 'صباحي', start_date: '2024-01-25', end_date: '2024-03-10', enrollment_open: true, status: 'active' },
+    { id: 4, name: 'دورة الجرافيكس والتصميم', description: 'تعلم الفوتوشوب والإليستريتور', category: 'فني', duration: 6, price: 1800, current_students: 8, max_students: 15, time_slot: 'صباحي', start_date: '2024-02-01', end_date: '2024-03-15', enrollment_open: true, status: 'upcoming' },
+    { id: 5, name: 'دورة صيانة الأجهزة', description: 'صيانة الهواتف الذكية والحواسيب', category: 'فني', duration: 6, price: 1500, current_students: 12, max_students: 18, time_slot: 'مسائي', start_date: '2024-02-05', end_date: '2024-03-20', enrollment_open: true, status: 'upcoming' },
+    { id: 6, name: 'دورة البرمجة', description: 'أساسيات البرمجة بلغة بايثون', category: 'حاسوب', duration: 8, price: 2000, current_students: 0, max_students: 20, time_slot: 'صباحي ومسائي', start_date: '2024-02-10', end_date: '2024-04-01', enrollment_open: false, status: 'upcoming' }
 ];
+
 
 const App: React.FC = () => {
   const { currentUser, delegates, incrementStudentCount, decrementStudentCount, logActivity, users, bankAccounts, restoreData } = useAuth();
-  const { addNotification } = useNotification();
+  const { addNotification } = useNotification(); // Use Notification Context
 
   const [activeView, setActiveView] = useState<View>('dashboard');
+  const [students, setStudents] = useState<Student[]>(initialStudentsData);
+  const [commissions, setCommissions] = useState<Commission[]>(initialCommissions);
+  const [courses, setCourses] = useState<CourseObject[]>(initialCourses);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  // --- PERSISTENCE LOGIC START ---
-  // Initialize state from LocalStorage or fallback to initial data
-  const [students, setStudents] = useState<Student[]>(() => {
-    try {
-        const saved = localStorage.getItem('app_students');
-        return saved ? JSON.parse(saved) : initialStudentsData;
-    } catch (e) { return initialStudentsData; }
-  });
-
-  const [commissions, setCommissions] = useState<Commission[]>(() => {
-    try {
-        const saved = localStorage.getItem('app_commissions');
-        return saved ? JSON.parse(saved) : initialCommissions;
-    } catch (e) { return initialCommissions; }
-  });
-
-  const [courses, setCourses] = useState<CourseObject[]>(() => {
-    try {
-        const saved = localStorage.getItem('app_courses');
-        return saved ? JSON.parse(saved) : initialCourses;
-    } catch (e) { return initialCourses; }
-  });
-
-  // Save to LocalStorage whenever data changes
-  useEffect(() => { localStorage.setItem('app_students', JSON.stringify(students)); }, [students]);
-  useEffect(() => { localStorage.setItem('app_commissions', JSON.stringify(commissions)); }, [commissions]);
-  useEffect(() => { localStorage.setItem('app_courses', JSON.stringify(courses)); }, [courses]);
-  // --- PERSISTENCE LOGIC END ---
 
   // --- Auto Notifications Engine ---
   useEffect(() => {
     if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager')) {
+        // Check for Pending Commissions
         const pendingCount = commissions.filter(c => c.status === CommissionStatus.Pending).length;
         if (pendingCount > 0) {
+             // To avoid spamming on every render, in a real app we'd check if notification exists. 
+             // Here we rely on the user dismissing it or local storage check.
+             // For simplicity in this prototype, we just add it if it's not there (this logic would be in Context usually)
+             // Let's just add a generic welcome notification if none exist
              const welcomeKey = 'welcome_notification_sent';
              if (!sessionStorage.getItem(welcomeKey)) {
-                 addNotification('💰 تنبيه العمولات', `يوجد ${pendingCount} عمولة معلقة تحتاج إلى مراجعة.`, 'warning', null, 'commissions');
+                 addNotification(
+                    '💰 تنبيه العمولات',
+                    `يوجد ${pendingCount} عمولة معلقة تحتاج إلى مراجعة.`,
+                    'warning',
+                    null, // Broadcast
+                    'commissions'
+                 );
                  sessionStorage.setItem(welcomeKey, 'true');
              }
         }
 
+        // Check for Courses ending soon
         courses.forEach(course => {
             if (course.status === 'active') {
                 const end = new Date(course.end_date);
@@ -93,33 +101,41 @@ const App: React.FC = () => {
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 
                 if (diffDays <= 7 && diffDays > 0) {
-                    const key = `course_expiry_${course.id}_${now.getDate()}`; 
+                    const key = `course_expiry_${course.id}_${now.getDate()}`; // Unique per day
                     if (!sessionStorage.getItem(key)) {
-                        addNotification('⏳ دورة تنتهي قريباً', `دورة "${course.name}" ستنتهي خلال ${diffDays} أيام.`, 'info', null, 'courses', course.id);
+                        addNotification(
+                            '⏳ دورة تنتهي قريباً',
+                            `دورة "${course.name}" ستنتهي خلال ${diffDays} أيام.`,
+                            'info',
+                            null,
+                            'courses',
+                            course.id
+                        );
                         sessionStorage.setItem(key, 'true');
                     }
                 }
             }
         });
     }
-  }, [currentUser, commissions, courses]);
+  }, [currentUser, commissions, courses]); // Logic runs when data changes
 
   const handleAddStudent = (studentData: Omit<Student, 'id' | 'registrationDate'>) => {
     const newStudent: Student = {
       id: students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1,
       ...studentData,
-      registrationDate: new Date().toISOString().split('T')[0],
+      registrationDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
     };
     setStudents(prevStudents => [newStudent, ...prevStudents]);
     incrementStudentCount(newStudent.delegateId);
     
+    // Automatically create a commission log
     const newCommission: Commission = {
         id: commissions.length > 0 ? Math.max(...commissions.map(c => c.id)) + 1 : 1,
         studentId: newStudent.id,
         delegateId: newStudent.delegateId,
         studentName: `${newStudent.firstName} ${newStudent.secondName} ${newStudent.thirdName} ${newStudent.lastName}`,
         course: newStudent.course,
-        amount: 500,
+        amount: 500, // Updated commission amount
         status: CommissionStatus.Pending,
         studentStatus: StudentStatus.Registered,
         createdDate: newStudent.registrationDate,
@@ -127,7 +143,16 @@ const App: React.FC = () => {
     setCommissions(prev => [newCommission, ...prev]);
     
     logActivity('add', 'students', `${newStudent.firstName} ${newStudent.lastName}`);
-    addNotification('🎉 طالب جديد', `تم تسجيل الطالب: ${newStudent.firstName} ${newStudent.lastName} بنجاح.`, 'success', null, 'students', newStudent.id);
+    
+    // Notification for Admin
+    addNotification(
+        '🎉 طالب جديد',
+        `تم تسجيل الطالب: ${newStudent.firstName} ${newStudent.lastName} بنجاح.`,
+        'success',
+        null, // Broadcast to admins
+        'students',
+        newStudent.id
+    );
   };
 
   const handleEditStudent = (studentId: number, updatedData: Partial<Omit<Student, 'id'>>) => {
@@ -143,7 +168,12 @@ const App: React.FC = () => {
           setCommissions(prev => prev.filter(c => c.studentId !== studentId));
           decrementStudentCount(studentToDelete.delegateId);
           logActivity('delete', 'students', `${studentToDelete.firstName} ${studentToDelete.lastName} (ID: ${studentId})`);
-          addNotification('🗑️ حذف طالب', `تم حذف الطالب ${studentToDelete.firstName} ${studentToDelete.lastName} من النظام.`, 'danger');
+          
+          addNotification(
+            '🗑️ حذف طالب',
+            `تم حذف الطالب ${studentToDelete.firstName} ${studentToDelete.lastName} من النظام.`,
+            'danger'
+          );
       }
   };
   
@@ -151,7 +181,11 @@ const App: React.FC = () => {
       setCommissions(prev => prev.map(c => {
           if (c.id === commissionId) {
               const now = new Date().toISOString().split('T')[0];
+              
+              // Notify the delegate if commission is confirmed/paid
               if (status === CommissionStatus.Paid || status === CommissionStatus.Confirmed) {
+                   // Assuming we can find the delegate's user ID from the delegate object.
+                   // In current types, Delegate has userId.
                    const delegate = delegates.find(d => d.id === c.delegateId);
                    if (delegate) {
                        addNotification(
@@ -163,6 +197,7 @@ const App: React.FC = () => {
                        );
                    }
               }
+
               return {
                   ...c,
                   status,
@@ -181,12 +216,15 @@ const App: React.FC = () => {
               const now = new Date().toISOString().split('T')[0];
               let newCommissionStatus = c.status;
               let newConfirmedDate = c.confirmedDate;
+
+              // Auto-update commission status based on student status
               if (studentStatus === StudentStatus.Completed && c.status !== CommissionStatus.Paid) {
                   newCommissionStatus = CommissionStatus.Confirmed;
                   newConfirmedDate = c.confirmedDate || now;
               } else if (studentStatus === StudentStatus.Dropped) {
                   newCommissionStatus = CommissionStatus.Cancelled;
               }
+
               return {
                   ...c,
                   studentStatus,
@@ -199,6 +237,7 @@ const App: React.FC = () => {
       logActivity('edit', 'commissions', `تحديث حالة الطالب للعمولة (ID: ${commissionId}) إلى ${studentStatus}`);
   };
 
+  // --- Course Management Handlers ---
   const handleAddCourse = (courseData: Omit<CourseObject, 'id' | 'current_students'>) => {
       const newCourse: CourseObject = {
           id: courses.length > 0 ? Math.max(...courses.map(c => c.id)) + 1 : 1,
@@ -224,10 +263,18 @@ const App: React.FC = () => {
   };
 
   const handleCreateBackup = (): BackupData => {
-      const data = { students, commissions, users, delegates, bankAccounts, courses };
+      const data = {
+          students,
+          commissions,
+          users,
+          delegates,
+          bankAccounts,
+          courses
+      };
       const jsonString = JSON.stringify(data);
       const blob = new Blob([jsonString], { type: 'application/json' });
       const size = (blob.size / 1024).toFixed(2) + ' KB';
+      
       const backup: BackupData = {
           name: `backup_${new Date().toISOString().replace(/[:.]/g, '-')}`,
           date: new Date().toISOString(),
@@ -243,8 +290,14 @@ const App: React.FC = () => {
       if (data.students) setStudents(data.students);
       if (data.commissions) setCommissions(data.commissions);
       if (data.courses) setCourses(data.courses);
+      
+      // Restore Auth Context data
       if (data.users || data.delegates || data.bankAccounts) {
-          restoreData({ users: data.users, delegates: data.delegates, bankAccounts: data.bankAccounts });
+          restoreData({
+              users: data.users,
+              delegates: data.delegates,
+              bankAccounts: data.bankAccounts
+          });
       }
       logActivity('restore', 'system', 'تم استعادة نسخة احتياطية');
       addNotification('🔄 استعادة النظام', 'تم استعادة بيانات النظام من النسخة الاحتياطية.', 'warning');
@@ -258,8 +311,12 @@ const App: React.FC = () => {
 
     return {
         totalStudents: students.length,
-        pendingCommissions: commissions.filter(c => c.status === CommissionStatus.Pending).reduce((sum, c) => sum + c.amount, 0),
-        paidCommissions: commissions.filter(c => c.status === CommissionStatus.Paid).reduce((sum, c) => sum + c.amount, 0),
+        pendingCommissions: commissions
+            .filter(c => c.status === CommissionStatus.Pending)
+            .reduce((sum, c) => sum + c.amount, 0),
+        paidCommissions: commissions
+            .filter(c => c.status === CommissionStatus.Paid)
+            .reduce((sum, c) => sum + c.amount, 0),
         topDelegate: topDelegate ? `${topDelegate.fullName} (${topDelegate.students} طالب)` : 'لا يوجد',
     };
   }, [students, commissions, delegates]);
@@ -275,27 +332,52 @@ const App: React.FC = () => {
 
   const renderView = () => {
     switch (activeView) {
-      case 'dashboard': return <Dashboard stats={dashboardStats} courses={courses} students={students} commissions={commissions} onNavigate={setActiveView} />;
-      case 'students': return <StudentManagement delegates={delegates} students={students} onAddStudent={handleAddStudent} onEditStudent={handleEditStudent} onDeleteStudent={handleDeleteStudent} />;
-      case 'delegates': return <DelegateManagement />;
-      case 'commissions': return <CommissionManagement commissions={commissions} delegates={delegates} onUpdateCommissionStatus={updateCommissionStatus} onUpdateStudentStatus={updateStudentStatus} />;
-      case 'courses': return <CourseManagement courses={courses} onAddCourse={handleAddCourse} onUpdateCourse={handleUpdateCourse} onDeleteCourse={handleDeleteCourse} />;
-      case 'reports': return <Reports delegates={delegates} commissions={commissions} />;
-      case 'activity-logs': return <ActivityLogs />;
-      case 'notifications': return <NotificationsPage />;
-      case 'settings': return <Settings onCreateBackup={handleCreateBackup} onRestoreBackup={handleRestoreBackup} />;
-      default: return <Dashboard stats={dashboardStats} courses={courses} students={students} commissions={commissions} onNavigate={setActiveView} />;
+      case 'dashboard':
+        return <Dashboard stats={dashboardStats} courses={courses} students={students} commissions={commissions} onNavigate={setActiveView} />;
+      case 'students':
+        return <StudentManagement delegates={delegates} students={students} onAddStudent={handleAddStudent} onEditStudent={handleEditStudent} onDeleteStudent={handleDeleteStudent} />;
+      case 'delegates':
+        return <DelegateManagement />;
+      case 'commissions':
+        return <CommissionManagement commissions={commissions} delegates={delegates} onUpdateCommissionStatus={updateCommissionStatus} onUpdateStudentStatus={updateStudentStatus} />;
+      case 'courses':
+        return <CourseManagement courses={courses} onAddCourse={handleAddCourse} onUpdateCourse={handleUpdateCourse} onDeleteCourse={handleDeleteCourse} />;
+      case 'reports':
+        return <Reports delegates={delegates} commissions={commissions} />;
+      case 'activity-logs':
+        return <ActivityLogs />;
+      case 'notifications':
+        return <NotificationsPage />;
+      case 'settings':
+        return <Settings onCreateBackup={handleCreateBackup} onRestoreBackup={handleRestoreBackup} />;
+      default:
+        return <Dashboard stats={dashboardStats} courses={courses} students={students} commissions={commissions} onNavigate={setActiveView} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-base)]">
       <div className="relative min-h-screen md:flex">
+        {/* Overlay for mobile menu */}
         {isMenuOpen && (
-          <div onClick={() => setIsMenuOpen(false)} className="fixed inset-0 bg-black/60 z-30 md:hidden no-print" aria-hidden="true" />
+          <div
+            onClick={() => setIsMenuOpen(false)}
+            className="fixed inset-0 bg-black/60 z-30 md:hidden no-print"
+            aria-hidden="true"
+          />
         )}
-        <MainMenu activeView={activeView} setActiveView={(view) => { setActiveView(view); setIsMenuOpen(false); }} isOpen={isMenuOpen} />
+
+        <MainMenu 
+          activeView={activeView}
+          setActiveView={(view) => {
+            setActiveView(view);
+            setIsMenuOpen(false); // Close menu on mobile after navigation
+          }}
+          isOpen={isMenuOpen}
+        />
+
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Mobile Header */}
           <header className="md:hidden flex justify-between items-center p-4 bg-[var(--color-primary)] text-[var(--color-primary-text)] shadow-md sticky top-0 z-20 no-print">
             <h1 className="text-lg font-bold">نظام المندوب الذكي</h1>
             <button onClick={() => setIsMenuOpen(true)} className="p-2" aria-label="Open menu">
@@ -304,9 +386,12 @@ const App: React.FC = () => {
               </svg>
             </button>
           </header>
+          
           <main className="flex-1 p-4 md:p-8">
             <AppHeader onNavigate={setActiveView} />
-            <div className="mt-8">{renderView()}</div>
+            <div className="mt-8">
+              {renderView()}
+            </div>
           </main>
         </div>
       </div>
