@@ -477,11 +477,11 @@ const StudentLog: React.FC<{
         }
     };
     
-    const SortableHeader: React.FC<{ sortKey: SortableKeys; children: React.ReactNode }> = ({ sortKey, children }) => {
-        const isActive = sortConfig.key === sortKey;
+    const SortableHeader: React.FC<{ sortKey: SortableKeys | 'schedule'; children: React.ReactNode }> = ({ sortKey, children }) => {
+        const isActive = sortConfig.key === sortKey as SortableKeys;
         const icon = isActive ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : '↕';
         return (
-            <th className="p-3 font-semibold cursor-pointer select-none text-[var(--color-primary-text)] whitespace-nowrap bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] transition-colors" onClick={() => requestSort(sortKey)}>
+            <th className="p-3 font-semibold cursor-pointer select-none text-[var(--color-primary-text)] whitespace-nowrap bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] transition-colors" onClick={() => requestSort(sortKey as SortableKeys)}>
                 <div className="flex items-center justify-start gap-2">
                     <span>{children}</span>
                     <span className="opacity-70 text-xs">{icon}</span>
@@ -539,6 +539,59 @@ const StudentLog: React.FC<{
                     {delegates.map(d => <option key={d.id} value={d.id}>{d.fullName}</option>)}
                 </select>
             </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+                {sortedAndFilteredStudents.map((student) => (
+                    <div key={student.id} className="bg-[var(--color-card)] p-5 rounded-2xl shadow-sm border border-[var(--color-border)]">
+                        <div className="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 className="font-bold text-[var(--color-primary)] text-lg">
+                                    {student.firstName} {student.lastName}
+                                </h4>
+                                <div className="flex items-center gap-2 text-xs mt-1 text-[var(--color-text-muted)]">
+                                    <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-600">#{student.id}</span>
+                                    <span>📅 {student.registrationDate}</span>
+                                </div>
+                            </div>
+                            <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-xs font-bold border border-blue-100">
+                                {student.course}
+                            </span>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm text-[var(--color-text-base)] bg-[var(--color-background)]/50 p-3 rounded-xl mb-4">
+                             <div className="flex justify-between items-center">
+                                <span className="text-[var(--color-text-muted)] text-xs">الهاتف</span>
+                                <span className="font-mono font-bold" dir="ltr">{student.phone}</span>
+                            </div>
+                             <div className="flex justify-between items-center">
+                                <span className="text-[var(--color-text-muted)] text-xs">التوقيت</span>
+                                <span className="font-bold">{student.schedule}</span>
+                            </div>
+                             <div className="flex justify-between items-center">
+                                <span className="text-[var(--color-text-muted)] text-xs">المندوب</span>
+                                <span className="font-bold text-[var(--color-secondary)]">{getDelegateName(student.delegateId)}</span>
+                            </div>
+                        </div>
+
+                        {currentUser?.role === 'admin' && (
+                            <div className="flex gap-2">
+                                <button onClick={() => handleEditClick(student)} className="flex-1 text-blue-700 bg-blue-50 hover:bg-blue-100 py-2 rounded-lg text-sm font-bold transition-colors border border-blue-100 flex items-center justify-center gap-1">
+                                    <span>✏️</span> تعديل
+                                </button>
+                                <button onClick={() => handleDeleteClick(student.id)} className="flex-1 text-red-700 bg-red-50 hover:bg-red-100 py-2 rounded-lg text-sm font-bold transition-colors border border-red-100 flex items-center justify-center gap-1">
+                                    <span>🗑️</span> حذف
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                ))}
+                {sortedAndFilteredStudents.length === 0 && (
+                    <div className="text-center p-8 text-[var(--color-text-muted)] bg-[var(--color-background)] rounded-xl border border-dashed border-[var(--color-border)]">
+                        لا توجد بيانات لعرضها.
+                    </div>
+                )}
+            </div>
             
             {/* Desktop Table View */}
             <div className="overflow-x-auto hidden md:block rounded-xl border border-[var(--color-border)] shadow-sm">
@@ -549,6 +602,7 @@ const StudentLog: React.FC<{
                             <SortableHeader sortKey="fullName">الاسم الرباعي</SortableHeader>
                             <SortableHeader sortKey="phone">الهاتف</SortableHeader>
                             <SortableHeader sortKey="course">الدورة</SortableHeader>
+                            <SortableHeader sortKey="schedule">الوقت</SortableHeader>
                             <SortableHeader sortKey="delegateName">المندوب</SortableHeader>
                             <SortableHeader sortKey="registrationDate">تاريخ التسجيل</SortableHeader>
                             {currentUser?.role === 'admin' && <th className="p-3 font-semibold whitespace-nowrap bg-[var(--color-primary)]">إجراءات</th>}
@@ -561,6 +615,7 @@ const StudentLog: React.FC<{
                                 <td className="p-4 font-bold text-[var(--color-text-base)]">{`${student.firstName} ${student.secondName} ${student.thirdName} ${student.lastName}`}</td>
                                 <td className="p-4 font-mono text-sm">{student.phone}</td>
                                 <td className="p-4"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">{student.course}</span></td>
+                                <td className="p-4"><span className="bg-purple-50 text-purple-700 px-2 py-1 rounded text-xs font-bold">{student.schedule}</span></td>
                                 <td className="p-4 font-medium text-[var(--color-secondary)]">{getDelegateName(student.delegateId)}</td>
                                 <td className="p-4 font-mono text-sm text-gray-500">{student.registrationDate}</td>
                                 {currentUser?.role === 'admin' && (
