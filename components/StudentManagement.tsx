@@ -540,47 +540,59 @@ const StudentLog: React.FC<{
                 </select>
             </div>
 
-            {/* Mobile Card View */}
+            {/* Mobile Card View - Enhanced to show ALL info vertically */}
             <div className="md:hidden space-y-4">
                 {sortedAndFilteredStudents.map((student) => (
-                    <div key={student.id} className="bg-[var(--color-card)] p-5 rounded-2xl shadow-sm border border-[var(--color-border)]">
-                        <div className="flex justify-between items-start mb-3">
-                            <div>
-                                <h4 className="font-bold text-[var(--color-primary)] text-lg">
-                                    {student.firstName} {student.lastName}
-                                </h4>
-                                <div className="flex items-center gap-2 text-xs mt-1 text-[var(--color-text-muted)]">
-                                    <span className="bg-gray-100 px-2 py-0.5 rounded text-gray-600">#{student.id}</span>
-                                    <span>📅 {student.registrationDate}</span>
-                                </div>
-                            </div>
-                            <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-xs font-bold border border-blue-100">
-                                {student.course}
-                            </span>
+                    <div key={student.id} className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden">
+                        <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-background)]/30 flex justify-between items-center">
+                            <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded text-xs font-bold">#{student.id}</span>
+                            <span className="text-xs text-[var(--color-text-muted)]">{student.registrationDate}</span>
                         </div>
                         
-                        <div className="space-y-2 text-sm text-[var(--color-text-base)] bg-[var(--color-background)]/50 p-3 rounded-xl mb-4">
-                             <div className="flex justify-between items-center">
-                                <span className="text-[var(--color-text-muted)] text-xs">الهاتف</span>
-                                <span className="font-mono font-bold" dir="ltr">{student.phone}</span>
+                        <div className="p-4 space-y-3">
+                             {/* Name */}
+                            <div>
+                                <p className="text-xs text-[var(--color-text-muted)] font-bold">الاسم الرباعي</p>
+                                <p className="font-bold text-[var(--color-primary)] text-lg leading-tight">
+                                    {student.firstName} {student.secondName} {student.thirdName} {student.lastName}
+                                </p>
                             </div>
-                             <div className="flex justify-between items-center">
-                                <span className="text-[var(--color-text-muted)] text-xs">التوقيت</span>
-                                <span className="font-bold">{student.schedule}</span>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Phone */}
+                                <div>
+                                    <p className="text-xs text-[var(--color-text-muted)] font-bold">رقم الهاتف</p>
+                                    <p className="font-mono font-bold text-[var(--color-text-base)]" dir="ltr">{student.phone}</p>
+                                </div>
+                                {/* Time */}
+                                <div>
+                                    <p className="text-xs text-[var(--color-text-muted)] font-bold">التوقيت</p>
+                                    <p className="font-bold text-purple-700">{student.schedule}</p>
+                                </div>
                             </div>
-                             <div className="flex justify-between items-center">
-                                <span className="text-[var(--color-text-muted)] text-xs">المندوب</span>
-                                <span className="font-bold text-[var(--color-secondary)]">{getDelegateName(student.delegateId)}</span>
+                            
+                            {/* Course */}
+                            <div>
+                                <p className="text-xs text-[var(--color-text-muted)] font-bold mb-1">الدورة</p>
+                                <span className="inline-block bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-sm font-bold border border-blue-100 w-full text-center">
+                                    {student.course}
+                                </span>
+                            </div>
+
+                            {/* Delegate */}
+                            <div>
+                                <p className="text-xs text-[var(--color-text-muted)] font-bold">المندوب</p>
+                                <p className="font-bold text-[var(--color-secondary)]">{getDelegateName(student.delegateId)}</p>
                             </div>
                         </div>
 
                         {currentUser?.role === 'admin' && (
-                            <div className="flex gap-2">
-                                <button onClick={() => handleEditClick(student)} className="flex-1 text-blue-700 bg-blue-50 hover:bg-blue-100 py-2 rounded-lg text-sm font-bold transition-colors border border-blue-100 flex items-center justify-center gap-1">
-                                    <span>✏️</span> تعديل
+                            <div className="p-3 bg-[var(--color-background)] border-t border-[var(--color-border)] flex gap-2">
+                                <button onClick={() => handleEditClick(student)} className="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg text-sm font-bold hover:bg-blue-200 transition">
+                                    ✏️ تعديل
                                 </button>
-                                <button onClick={() => handleDeleteClick(student.id)} className="flex-1 text-red-700 bg-red-50 hover:bg-red-100 py-2 rounded-lg text-sm font-bold transition-colors border border-red-100 flex items-center justify-center gap-1">
-                                    <span>🗑️</span> حذف
+                                <button onClick={() => handleDeleteClick(student.id)} className="flex-1 bg-red-100 text-red-700 py-2 rounded-lg text-sm font-bold hover:bg-red-200 transition">
+                                    🗑️ حذف
                                 </button>
                             </div>
                         )}

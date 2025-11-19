@@ -221,32 +221,55 @@ export const DelegateManagement: React.FC = () => {
              </select>
         </div>
         
-        {/* Mobile Card View */}
+        {/* Mobile Card View - Improved Layout */}
         <div className="space-y-4 md:hidden">
             {filteredUsers.map(user => (
-                <div key={user.id} className="bg-[var(--color-background)] p-4 rounded-lg shadow border-r-4 border-[var(--color-primary)]">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <p className="font-bold text-[var(--color-primary)] text-lg">{user.fullName}</p>
-                            <p className="text-sm text-[var(--color-text-muted)] font-mono">@{user.username}</p>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]' : 'bg-gray-200 text-gray-800'}`}>
+                <div key={user.id} className="bg-[var(--color-background)] rounded-lg shadow border border-[var(--color-border)] overflow-hidden">
+                    {/* Header: Name & Status */}
+                    <div className="flex justify-between items-center p-3 border-b border-[var(--color-border)] bg-[var(--color-background)]/50">
+                         <p className="font-bold text-[var(--color-primary)] text-lg">{user.fullName}</p>
+                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]' : 'bg-gray-200 text-gray-800'}`}>
                             {user.isActive ? 'نشط' : 'غير نشط'}
                         </span>
                     </div>
-                    <div className="mt-3 pt-3 border-t border-[var(--color-border)] text-sm space-y-2 text-[var(--color-text-base)]">
-                        <p><strong>الهاتف:</strong> {user.delegate?.phone || '-'}</p>
-                        <p><strong>الصلاحية:</strong> {roleLabels[user.role]}</p>
-                        <p><strong>مسجل بواسطة:</strong> {user.referredById ? userMap.get(user.referredById) : '-'}</p>
+                    
+                    <div className="p-4 space-y-2">
+                         {/* Username */}
+                         <div className="flex justify-between border-b border-[var(--color-border)] pb-2 mb-2">
+                             <span className="text-xs font-bold text-[var(--color-text-muted)]">اسم المستخدم</span>
+                             <span className="text-sm font-mono font-bold">{user.username}</span>
+                         </div>
+
+                         {/* Grid for Details */}
+                         <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <span className="block text-xs font-bold text-[var(--color-text-muted)]">الصلاحية</span>
+                                <span className="text-sm">{roleLabels[user.role]}</span>
+                            </div>
+                            <div>
+                                <span className="block text-xs font-bold text-[var(--color-text-muted)]">الهاتف</span>
+                                <span className="text-sm font-mono">{user.delegate?.phone || '-'}</span>
+                            </div>
+                         </div>
+
+                         <div className="pt-2">
+                            <span className="block text-xs font-bold text-[var(--color-text-muted)]">مسجل بواسطة</span>
+                            <span className="text-sm">{user.referredById ? userMap.get(user.referredById) : '-'}</span>
+                         </div>
                     </div>
-                    <div className="mt-3 pt-2 border-t border-[var(--color-border)] flex justify-end gap-4">
-                        <button onClick={() => openEditModal(user)} className="text-blue-600 font-semibold text-sm">تعديل</button>
-                        <button onClick={() => toggleUserStatus(user.id)} className="text-red-600 font-semibold text-sm">
-                            {user.isActive ? 'تعطيل' : 'تفعيل'}
+                    
+                    {/* Actions */}
+                    <div className="flex border-t border-[var(--color-border)]">
+                        <button onClick={() => openEditModal(user)} className="flex-1 py-3 text-blue-600 font-bold text-sm hover:bg-blue-50 transition-colors border-l border-[var(--color-border)]">
+                            ✏️ تعديل
+                        </button>
+                        <button onClick={() => toggleUserStatus(user.id)} className={`flex-1 py-3 font-bold text-sm transition-colors ${user.isActive ? 'text-red-600 hover:bg-red-50' : 'text-green-600 hover:bg-green-50'}`}>
+                            {user.isActive ? '🚫 تعطيل' : '✅ تفعيل'}
                         </button>
                     </div>
                 </div>
             ))}
+             {filteredUsers.length === 0 && <div className="text-center p-8 text-[var(--color-text-muted)] bg-[var(--color-background)] rounded-lg border border-dashed border-[var(--color-border)]">لا توجد نتائج مطابقة للبحث.</div>}
         </div>
 
         {/* Desktop Table View */}
