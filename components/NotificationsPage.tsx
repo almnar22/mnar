@@ -51,21 +51,49 @@ export const NotificationsPage: React.FC = () => {
 
     const getIcon = (type: NotificationType) => {
         switch (type) {
-            case 'success': return '✅';
-            case 'warning': return '⚠️';
-            case 'danger': return '🚨';
-            case 'info': return 'ℹ️';
-            default: return '📢';
+            case 'success':
+                return (
+                    <div className="p-3 rounded-full bg-green-100 text-green-600 shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                );
+            case 'warning':
+                return (
+                    <div className="p-3 rounded-full bg-orange-100 text-orange-600 shrink-0">
+                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                    </div>
+                );
+            case 'danger':
+                return (
+                    <div className="p-3 rounded-full bg-red-100 text-red-600 shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                        </svg>
+                    </div>
+                );
+            case 'info':
+            default:
+                return (
+                    <div className="p-3 rounded-full bg-blue-100 text-blue-600 shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                        </svg>
+                    </div>
+                );
         }
     };
 
-    const getBorderColor = (type: NotificationType) => {
+    const getStyles = (type: NotificationType) => {
         switch (type) {
-            case 'success': return 'border-green-500';
-            case 'warning': return 'border-orange-500';
-            case 'danger': return 'border-red-500';
-            case 'info': return 'border-blue-500';
-            default: return 'border-gray-500';
+            case 'success': return { border: 'border-green-500', bg: 'bg-green-50/50', highlight: 'text-green-700' };
+            case 'warning': return { border: 'border-orange-500', bg: 'bg-orange-50/50', highlight: 'text-orange-700' };
+            case 'danger': return { border: 'border-red-500', bg: 'bg-red-50/50', highlight: 'text-red-700' };
+            case 'info': return { border: 'border-blue-500', bg: 'bg-blue-50/50', highlight: 'text-blue-700' };
+            default: return { border: 'border-gray-500', bg: 'bg-gray-50/50', highlight: 'text-gray-700' };
         }
     };
 
@@ -230,72 +258,75 @@ export const NotificationsPage: React.FC = () => {
                             <p className="text-gray-500">قائمة الإشعارات فارغة حالياً</p>
                         </div>
                     ) : (
-                        filteredNotifications.map(notification => (
-                            <div 
-                                key={notification.id} 
-                                className={`bg-[var(--color-card)] p-5 rounded-lg shadow-sm border-r-4 ${getBorderColor(notification.type)} transition-all hover:shadow-md relative overflow-hidden group`}
-                            >
-                                {!notification.isRead && (
-                                    <div className="absolute top-0 left-0 w-full h-full bg-[var(--color-primary)] opacity-[0.03] pointer-events-none"></div>
-                                )}
-                                <div className="flex items-start gap-4 relative z-10">
-                                    <div className="text-3xl p-2 bg-[var(--color-background)] rounded-full h-fit">
+                        filteredNotifications.map(notification => {
+                            const styles = getStyles(notification.type);
+                            return (
+                                <div 
+                                    key={notification.id} 
+                                    className={`bg-[var(--color-card)] p-5 rounded-lg shadow-sm border-r-4 ${styles.border} transition-all hover:shadow-md relative overflow-hidden group`}
+                                >
+                                    {!notification.isRead && (
+                                        <div className={`absolute top-0 left-0 w-full h-full ${styles.bg} opacity-20 pointer-events-none`}></div>
+                                    )}
+                                    <div className="flex items-start gap-4 relative z-10">
                                         {getIcon(notification.type)}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <h4 className={`font-bold text-lg ${!notification.isRead ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-base)]'}`}>
-                                                {notification.title}
-                                            </h4>
-                                            <div className="flex items-center gap-2">
-                                                {!notification.isRead && (
-                                                    <span className="bg-[var(--color-secondary)] text-white text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">جديد</span>
-                                                )}
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
-                                                    className="text-gray-400 hover:text-red-600 transition-colors p-1"
-                                                    title="حذف"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                    </svg>
-                                                </button>
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <h4 className={`font-bold text-lg ${!notification.isRead ? styles.highlight : 'text-[var(--color-text-base)]'}`}>
+                                                    {notification.title}
+                                                </h4>
+                                                <div className="flex items-center gap-2">
+                                                    {!notification.isRead && (
+                                                        <span className="bg-[var(--color-secondary)] text-white text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse shadow-sm">
+                                                            جديد
+                                                        </span>
+                                                    )}
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }}
+                                                        className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                                                        title="حذف"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <p className="text-[var(--color-text-base)] mb-3">{notification.message}</p>
-                                        
-                                        <div className="flex flex-wrap justify-between items-center text-xs text-[var(--color-text-muted)] border-t border-[var(--color-border)] pt-2 mt-2">
-                                            <span className="flex items-center gap-2 bg-[var(--color-background)] px-2 py-1 rounded border border-[var(--color-border)]">
-                                                <span>⏰</span> 
-                                                <span dir="ltr">{new Date(notification.createdAt).toLocaleString('en-GB')}</span>
-                                            </span>
+                                            <p className="text-[var(--color-text-base)] mb-3 leading-relaxed">{notification.message}</p>
                                             
-                                            <div className="flex gap-2">
-                                                {notification.relatedModule && (
-                                                    <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100">
-                                                        🔗 {notification.relatedModule}
-                                                    </span>
-                                                )}
-                                                {notification.userId === null && (
-                                                    <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-100">
-                                                        📢 عام (Broadcast)
-                                                    </span>
-                                                )}
+                                            <div className="flex flex-wrap justify-between items-center text-xs text-[var(--color-text-muted)] border-t border-[var(--color-border)] pt-2 mt-2">
+                                                <span className="flex items-center gap-2 bg-[var(--color-background)] px-2 py-1 rounded border border-[var(--color-border)]">
+                                                    <span>⏰</span> 
+                                                    <span dir="ltr">{new Date(notification.createdAt).toLocaleString('en-GB')}</span>
+                                                </span>
+                                                
+                                                <div className="flex gap-2">
+                                                    {notification.relatedModule && (
+                                                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-100">
+                                                            🔗 {notification.relatedModule}
+                                                        </span>
+                                                    )}
+                                                    {notification.userId === null && (
+                                                        <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-100">
+                                                            📢 عام (Broadcast)
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    {!notification.isRead && (
+                                        <button 
+                                            onClick={() => markAsRead(notification.id)}
+                                            className="absolute bottom-2 left-2 text-xs text-[var(--color-primary)] font-bold opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1 rounded shadow border border-gray-200"
+                                        >
+                                            ✅ تحديد كمقروء
+                                        </button>
+                                    )}
                                 </div>
-                                
-                                {!notification.isRead && (
-                                    <button 
-                                        onClick={() => markAsRead(notification.id)}
-                                        className="absolute bottom-2 left-2 text-xs text-[var(--color-primary)] font-bold opacity-0 group-hover:opacity-100 transition-opacity bg-white/80 px-2 py-1 rounded"
-                                    >
-                                        تحديد كمقروء
-                                    </button>
-                                )}
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
             )}

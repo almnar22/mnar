@@ -35,6 +35,49 @@ const Notification: React.FC<{ message: string; type: 'success' | 'error' }> = (
     return <div className={`${baseClasses} ${typeClasses[type]}`}>{icon} {message}</div>;
 }
 
+// New Confirmation Modal Component
+const DeleteConfirmationModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    studentName: string;
+}> = ({ isOpen, onClose, onConfirm, studentName }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex justify-center items-center p-4 animate-fade-in">
+            <div className="bg-[var(--color-card)] rounded-lg shadow-2xl w-full max-w-md transform transition-all scale-100 border-t-4 border-red-600">
+                <div className="p-6 text-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span className="text-3xl">⚠️</span>
+                    </div>
+                    <h3 className="text-xl font-bold text-[var(--color-text-base)] mb-2">تأكيد الحذف</h3>
+                    <p className="text-[var(--color-text-muted)] mb-6">
+                        هل أنت متأكد من رغبتك في حذف الطالب <br/>
+                        <span className="font-bold text-[var(--color-primary)] text-lg">{studentName}</span>؟<br/>
+                        <span className="text-xs text-red-500 mt-2 block">لا يمكن التراجع عن هذا الإجراء.</span>
+                    </p>
+                    
+                    <div className="flex justify-center gap-3">
+                        <button 
+                            onClick={onClose}
+                            className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition"
+                        >
+                            إلغاء
+                        </button>
+                        <button 
+                            onClick={onConfirm}
+                            className="px-5 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition shadow-lg flex items-center gap-2"
+                        >
+                            <span>🗑️</span> نعم، حذف
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 type SortableKeys = keyof Student | 'fullName' | 'delegateName';
 type SortDirection = 'ascending' | 'descending';
 
@@ -220,6 +263,14 @@ const StudentLog: React.FC<{
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
     const [notification, setNotification] = useState<{message: string; type: 'success' | 'error'} | null>(null);
+    
+    // Delete Modal State
+    const [deleteModalState, setDeleteModalState] = useState<{isOpen: boolean, studentId: number | null, studentName: string}>({
+        isOpen: false,
+        studentId: null,
+        studentName: ''
+    });
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const delegateMap = useMemo(() => new Map(delegates.map(d => [d.id, d.fullName])), [delegates]);
@@ -405,8 +456,22 @@ const StudentLog: React.FC<{
     };
     
     const handleDeleteClick = (studentId: number) => {
-        if(window.confirm('هل أنت متأكد من حذف هذا الطالب؟ لا يمكن التراجع عن هذا الإجراء.')){
-            onDeleteStudent(studentId);
+        const student = students.find(s => s.id === studentId);
+        if (student) {
+             setDeleteModalState({
+                isOpen: true,
+                studentId,
+                studentName: `${student.firstName} ${student.lastName}`
+            });
+        }
+    };
+
+    const confirmDelete = () => {
+        if (deleteModalState.studentId !== null) {
+            onDeleteStudent(deleteModalState.studentId);
+            setDeleteModalState({ isOpen: false, studentId: null, studentName: '' });
+            setNotification({ message: 'تم حذف الطالب بنجاح', type: 'success' });
+            setTimeout(() => setNotification(null), 3000);
         }
     };
     
@@ -428,6 +493,13 @@ const StudentLog: React.FC<{
             {notification && <Notification message={notification.message} type={notification.type} />}
             {studentToEdit && <EditStudentModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} student={studentToEdit} delegates={delegates} onSave={onEditStudent} />}
             
+            <DeleteConfirmationModal 
+                isOpen={deleteModalState.isOpen}
+                onClose={() => setDeleteModalState({ ...deleteModalState, isOpen: false })}
+                onConfirm={confirmDelete}
+                studentName={deleteModalState.studentName}
+            />
+
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b-2 border-[var(--color-primary-light)] pb-4">
                 <div className="text-xl font-bold text-[var(--color-text-base)]">
                     📋 إجمالي الطلاب: <span className="text-[var(--color-secondary)]">{sortedAndFilteredStudents.length}</span>
