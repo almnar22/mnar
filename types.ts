@@ -125,4 +125,18 @@ export interface CourseObject {
     status: 'active' | 'upcoming' | 'completed';
 }
 
-export type View = 'dashboard' | 'students' | 'delegates' | 'commissions' | 'courses' | 'reports' | 'settings' | 'activity-logs' | 'logout';
+export type NotificationType = 'success' | 'warning' | 'info' | 'danger';
+
+export interface Notification {
+    id: number;
+    userId: number | null; // null means broadcast to all admins/managers
+    title: string;
+    message: string;
+    type: NotificationType;
+    isRead: boolean;
+    relatedModule?: string;
+    relatedId?: number;
+    createdAt: string;
+}
+
+export type View = 'dashboard' | 'students' | 'delegates' | 'commissions' | 'courses' | 'reports' | 'settings' | 'activity-logs' | 'notifications' | 'logout';

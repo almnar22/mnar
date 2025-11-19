@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AppHeader } from './components/AppHeader';
 import { MainMenu } from './components/MainMenu';
 import { Dashboard } from './components/Dashboard';
@@ -10,9 +10,11 @@ import { Reports } from './components/Reports';
 import { Settings } from './components/Settings';
 import { ActivityLogs } from './components/ActivityLogs';
 import { CourseManagement } from './components/CourseManagement';
+import { NotificationsPage } from './components/NotificationsPage'; // Import Notification Page
 import type { View, Student, Commission, Delegate, BackupData, CourseObject } from './types';
 import { Course, Schedule, CommissionStatus, StudentStatus } from './types';
 import { useAuth } from './contexts/AuthContext';
+import { useNotification } from './contexts/NotificationContext'; // Import hook
 import { Login } from './components/Login';
 import { DelegateDashboard } from './components/DelegateDashboard';
 
@@ -59,11 +61,63 @@ const initialCourses: CourseObject[] = [
 
 const App: React.FC = () => {
   const { currentUser, delegates, incrementStudentCount, decrementStudentCount, logActivity, users, bankAccounts, restoreData } = useAuth();
+  const { addNotification } = useNotification(); // Use Notification Context
+
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [students, setStudents] = useState<Student[]>(initialStudentsData);
   const [commissions, setCommissions] = useState<Commission[]>(initialCommissions);
   const [courses, setCourses] = useState<CourseObject[]>(initialCourses);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // --- Auto Notifications Engine ---
+  useEffect(() => {
+    if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager')) {
+        // Check for Pending Commissions
+        const pendingCount = commissions.filter(c => c.status === CommissionStatus.Pending).length;
+        if (pendingCount > 0) {
+             // To avoid spamming on every render, in a real app we'd check if notification exists. 
+             // Here we rely on the user dismissing it or local storage check.
+             // For simplicity in this prototype, we just add it if it's not there (this logic would be in Context usually)
+             // Let's just add a generic welcome notification if none exist
+             const welcomeKey = 'welcome_notification_sent';
+             if (!sessionStorage.getItem(welcomeKey)) {
+                 addNotification(
+                    '💰 تنبيه العمولات',
+                    `يوجد ${pendingCount} عمولة معلقة تحتاج إلى مراجعة.`,
+                    'warning',
+                    null, // Broadcast
+                    'commissions'
+                 );
+                 sessionStorage.setItem(welcomeKey, 'true');
+             }
+        }
+
+        // Check for Courses ending soon
+        courses.forEach(course => {
+            if (course.status === 'active') {
+                const end = new Date(course.end_date);
+                const now = new Date();
+                const diffTime = end.getTime() - now.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays <= 7 && diffDays > 0) {
+                    const key = `course_expiry_${course.id}_${now.getDate()}`; // Unique per day
+                    if (!sessionStorage.getItem(key)) {
+                        addNotification(
+                            '⏳ دورة تنتهي قريباً',
+                            `دورة "${course.name}" ستنتهي خلال ${diffDays} أيام.`,
+                            'info',
+                            null,
+                            'courses',
+                            course.id
+                        );
+                        sessionStorage.setItem(key, 'true');
+                    }
+                }
+            }
+        });
+    }
+  }, [currentUser, commissions, courses]); // Logic runs when data changes
 
   const handleAddStudent = (studentData: Omit<Student, 'id' | 'registrationDate'>) => {
     const newStudent: Student = {
@@ -89,6 +143,16 @@ const App: React.FC = () => {
     setCommissions(prev => [newCommission, ...prev]);
     
     logActivity('add', 'students', `${newStudent.firstName} ${newStudent.lastName}`);
+    
+    // Notification for Admin
+    addNotification(
+        '🎉 طالب جديد',
+        `تم تسجيل الطالب: ${newStudent.firstName} ${newStudent.lastName} بنجاح.`,
+        'success',
+        null, // Broadcast to admins
+        'students',
+        newStudent.id
+    );
   };
 
   const handleEditStudent = (studentId: number, updatedData: Partial<Omit<Student, 'id'>>) => {
@@ -104,6 +168,12 @@ const App: React.FC = () => {
           setCommissions(prev => prev.filter(c => c.studentId !== studentId));
           decrementStudentCount(studentToDelete.delegateId);
           logActivity('delete', 'students', `${studentToDelete.firstName} ${studentToDelete.lastName} (ID: ${studentId})`);
+          
+          addNotification(
+            '🗑️ حذف طالب',
+            `تم حذف الطالب ${studentToDelete.firstName} ${studentToDelete.lastName} من النظام.`,
+            'danger'
+          );
       }
   };
   
@@ -111,6 +181,23 @@ const App: React.FC = () => {
       setCommissions(prev => prev.map(c => {
           if (c.id === commissionId) {
               const now = new Date().toISOString().split('T')[0];
+              
+              // Notify the delegate if commission is confirmed/paid
+              if (status === CommissionStatus.Paid || status === CommissionStatus.Confirmed) {
+                   // Assuming we can find the delegate's user ID from the delegate object.
+                   // In current types, Delegate has userId.
+                   const delegate = delegates.find(d => d.id === c.delegateId);
+                   if (delegate) {
+                       addNotification(
+                           status === CommissionStatus.Paid ? '💰 تم دفع العمولة' : '✅ تم تأكيد العمولة',
+                           `تم تحديث حالة عمولتك للطالب ${c.studentName} إلى ${status}.`,
+                           'success',
+                           delegate.userId,
+                           'commissions'
+                       );
+                   }
+              }
+
               return {
                   ...c,
                   status,
@@ -159,6 +246,7 @@ const App: React.FC = () => {
       };
       setCourses(prev => [...prev, newCourse]);
       logActivity('add', 'courses', `إضافة دورة جديدة: ${newCourse.name}`);
+      addNotification('📚 دورة جديدة', `تم إضافة دورة جديدة: ${newCourse.name}`, 'info');
   };
 
   const handleUpdateCourse = (id: number, courseData: Partial<CourseObject>) => {
@@ -194,6 +282,7 @@ const App: React.FC = () => {
           data: data
       };
       logActivity('backup', 'system', 'تم إنشاء نسخة احتياطية');
+      addNotification('💾 نسخة احتياطية', 'تم إنشاء نسخة احتياطية للنظام بنجاح.', 'success');
       return backup;
   };
 
@@ -211,6 +300,7 @@ const App: React.FC = () => {
           });
       }
       logActivity('restore', 'system', 'تم استعادة نسخة احتياطية');
+      addNotification('🔄 استعادة النظام', 'تم استعادة بيانات النظام من النسخة الاحتياطية.', 'warning');
   };
 
   const dashboardStats = useMemo(() => {
@@ -256,6 +346,8 @@ const App: React.FC = () => {
         return <Reports delegates={delegates} commissions={commissions} />;
       case 'activity-logs':
         return <ActivityLogs />;
+      case 'notifications':
+        return <NotificationsPage />;
       case 'settings':
         return <Settings onCreateBackup={handleCreateBackup} onRestoreBackup={handleRestoreBackup} />;
       default:
@@ -287,7 +379,7 @@ const App: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile Header */}
           <header className="md:hidden flex justify-between items-center p-4 bg-[var(--color-primary)] text-[var(--color-primary-text)] shadow-md sticky top-0 z-20 no-print">
-            <h1 className="text-lg font-bold">نظام المندوب الذكي - المركز الأوروبي</h1>
+            <h1 className="text-lg font-bold">نظام المندوب الذكي</h1>
             <button onClick={() => setIsMenuOpen(true)} className="p-2" aria-label="Open menu">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -296,7 +388,7 @@ const App: React.FC = () => {
           </header>
           
           <main className="flex-1 p-4 md:p-8">
-            <AppHeader />
+            <AppHeader onNavigate={setActiveView} />
             <div className="mt-8">
               {renderView()}
             </div>
