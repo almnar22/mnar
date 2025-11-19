@@ -23,24 +23,24 @@ const ProgressBar: React.FC<{ percentage: number }> = ({ percentage }) => {
     else if (percentage < 70) colorClass = 'bg-orange-500';
 
     return (
-        <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
-            <div className={`${colorClass} h-2.5 rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
+        <div className="w-full bg-gray-200 rounded-full h-2 mt-1 overflow-hidden">
+            <div className={`${colorClass} h-full rounded-full transition-all duration-1000 ease-out`} style={{ width: `${percentage}%` }}></div>
         </div>
     );
 };
 
 const Notification: React.FC<{ message: string; type: 'success' | 'error' }> = ({ message, type }) => {
-    const baseClasses = "p-4 rounded-md text-[var(--color-primary-text)] font-bold mb-4 flex items-center gap-2 whitespace-pre-wrap";
+    const baseClasses = "p-4 rounded-xl text-[var(--color-primary-text)] font-bold mb-4 flex items-center gap-3 shadow-sm animate-fade-in";
     const typeClasses = { success: "bg-[var(--color-secondary)]", error: "bg-[var(--color-primary)]" };
-    const icon = type === 'success' ? '✅ 🔶' : '❌ 🔷';
+    const icon = type === 'success' ? '✅' : '⚠️';
     return <div className={`${baseClasses} ${typeClasses[type]}`}>{icon} {message}</div>;
 }
 
 const commissionStatusStyles: Record<CommissionStatus, { classes: string, label: string, icon: string }> = {
-    [CommissionStatus.Pending]: { classes: 'bg-[var(--color-warning-light)] text-[var(--color-warning-text)]', label: 'معلقة', icon: '⏳' },
-    [CommissionStatus.Confirmed]: { classes: 'bg-blue-100 text-blue-800', label: 'مؤكدة', icon: '✅' },
-    [CommissionStatus.Paid]: { classes: 'bg-[var(--color-success-light)] text-[var(--color-success-text)]', label: 'مدفوعة', icon: '💰' },
-    [CommissionStatus.Cancelled]: { classes: 'bg-red-100 text-red-800', label: 'ملغاة', icon: '❌' },
+    [CommissionStatus.Pending]: { classes: 'bg-amber-50 text-amber-700 border-amber-200', label: 'معلقة', icon: '⏳' },
+    [CommissionStatus.Confirmed]: { classes: 'bg-blue-50 text-blue-700 border-blue-200', label: 'مؤكدة', icon: '✅' },
+    [CommissionStatus.Paid]: { classes: 'bg-green-50 text-green-700 border-green-200', label: 'مدفوعة', icon: '💰' },
+    [CommissionStatus.Cancelled]: { classes: 'bg-red-50 text-red-700 border-red-200', label: 'ملغاة', icon: '❌' },
 };
 
 const studentStatusStyles: Record<StudentStatus, { classes: string, label: string, icon: string }> = {
@@ -54,62 +54,56 @@ const studentStatusStyles: Record<StudentStatus, { classes: string, label: strin
 
 // --- New Components for Grid Layout ---
 
+const StatItem: React.FC<{ label: string, value: number | string, color: string, icon: string }> = ({ label, value, color, icon }) => (
+    <div className="flex-1 flex flex-col items-center p-2 relative group cursor-default">
+        <div className={`text-3xl mb-2 opacity-80 group-hover:scale-110 transition-transform`}>{icon}</div>
+        <span className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">{label}</span>
+        <span className={`text-2xl font-black ${color}`}>{value}</span>
+    </div>
+);
+
 const QuickStatsBar: React.FC<{ stats: { students: number, commissions: number, network: number, pending: number } }> = ({ stats }) => (
-    <div className="bg-[var(--color-card)] rounded-lg shadow-md border border-[var(--color-border)] p-4 mb-6">
-        <div className="flex justify-between items-center text-center text-[var(--color-text-base)]">
-            <div className="flex-1 border-l border-[var(--color-border)]">
-                 <span className="block text-xs md:text-sm text-[var(--color-text-muted)] mb-1">👥 الطلاب</span>
-                 <span className="text-lg md:text-xl font-bold text-green-600">{stats.students}</span>
-            </div>
-            <div className="flex-1 border-l border-[var(--color-border)]">
-                 <span className="block text-xs md:text-sm text-[var(--color-text-muted)] mb-1">💰 العمولات</span>
-                 <span className="text-lg md:text-xl font-bold text-orange-600">{stats.commissions}</span>
-            </div>
-             <div className="flex-1 border-l border-[var(--color-border)]">
-                 <span className="block text-xs md:text-sm text-[var(--color-text-muted)] mb-1">🌐 الشبكة</span>
-                 <span className="text-lg md:text-xl font-bold text-purple-600">{stats.network}</span>
-            </div>
-             <div className="flex-1">
-                 <span className="block text-xs md:text-sm text-[var(--color-text-muted)] mb-1">📊 معلق</span>
-                 <span className="text-lg md:text-xl font-bold text-cyan-600">{stats.pending}</span>
-            </div>
+    <div className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] p-6 mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-center divide-y md:divide-y-0 md:divide-x md:divide-x-reverse divide-[var(--color-border)]">
+            <StatItem label="الطلاب" value={stats.students} color="text-emerald-600" icon="👥" />
+            <StatItem label="العمولات" value={stats.commissions} color="text-amber-600" icon="💰" />
+            <StatItem label="الشبكة" value={stats.network} color="text-purple-600" icon="🌐" />
+            <StatItem label="معلق" value={stats.pending} color="text-blue-600" icon="⏳" />
         </div>
     </div>
 );
 
 const MenuGrid: React.FC<{ onItemClick: (view: DelegateView) => void; logout: () => void }> = ({ onItemClick, logout }) => {
     const menuItems = [
-        { id: 'dashboard' as DelegateView, label: 'لوحة التحكم', icon: '📊', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', key: '1' },
-        { id: 'students' as DelegateView, label: 'طلابي', icon: '👥', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-200', key: '2' },
-        { id: 'commissions' as DelegateView, label: 'عمولاتي', icon: '💰', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200', key: '3' },
-        { id: 'myNetwork' as DelegateView, label: 'شبكتي', icon: '🌐', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200', key: '4' },
-        { id: 'addStudent' as DelegateView, label: 'تسجيل طالب', icon: '📝', color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-200', key: '5' },
-        { id: 'addDelegate' as DelegateView, label: 'إضافة مندوب', icon: '🤝', color: 'text-teal-600', bg: 'bg-teal-50', border: 'border-teal-200', key: '6' },
-        { id: 'bankAccount' as DelegateView, label: 'حسابي البنكي', icon: '🏦', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-200', key: '7' },
-        { id: 'profile' as DelegateView, label: 'بياناتي', icon: '👤', color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200', key: '8' },
-        { id: 'changePassword' as DelegateView, label: 'كلمة المرور', icon: '🔐', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200', key: '9' },
+        { id: 'dashboard' as DelegateView, label: 'لوحة التحكم', icon: '📊', color: 'text-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200', key: '1' },
+        { id: 'students' as DelegateView, label: 'طلابي', icon: '👥', color: 'text-emerald-600', bg: 'hover:bg-emerald-50 hover:border-emerald-200', key: '2' },
+        { id: 'commissions' as DelegateView, label: 'عمولاتي', icon: '💰', color: 'text-amber-600', bg: 'hover:bg-amber-50 hover:border-amber-200', key: '3' },
+        { id: 'myNetwork' as DelegateView, label: 'شبكتي', icon: '🌐', color: 'text-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200', key: '4' },
+        { id: 'addStudent' as DelegateView, label: 'تسجيل طالب', icon: '📝', color: 'text-cyan-600', bg: 'hover:bg-cyan-50 hover:border-cyan-200', key: '5' },
+        { id: 'addDelegate' as DelegateView, label: 'إضافة مندوب', icon: '🤝', color: 'text-teal-600', bg: 'hover:bg-teal-50 hover:border-teal-200', key: '6' },
+        { id: 'bankAccount' as DelegateView, label: 'حسابي البنكي', icon: '🏦', color: 'text-indigo-600', bg: 'hover:bg-indigo-50 hover:border-indigo-200', key: '7' },
+        { id: 'profile' as DelegateView, label: 'بياناتي', icon: '👤', color: 'text-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200', key: '8' },
+        { id: 'changePassword' as DelegateView, label: 'كلمة المرور', icon: '🔐', color: 'text-rose-600', bg: 'hover:bg-rose-50 hover:border-rose-200', key: '9' },
     ];
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
             {menuItems.map((item) => (
                 <button 
                     key={item.id}
                     onClick={() => onItemClick(item.id)}
-                    className={`${item.bg} ${item.border} border hover:shadow-lg transition-all p-4 rounded-xl flex flex-col items-center justify-center gap-2 group h-32`}
+                    className={`bg-[var(--color-card)] border border-[var(--color-border)] ${item.bg} transition-all duration-200 p-4 rounded-xl flex flex-col items-center justify-center gap-3 group shadow-sm hover:shadow-md h-32`}
                 >
-                    <span className="text-3xl group-hover:scale-110 transition-transform">{item.icon}</span>
-                    <span className="text-xs font-mono opacity-50 text-[var(--color-text-muted)]">[{item.key}]</span>
-                    <span className={`font-bold ${item.color}`}>{item.label}</span>
+                    <span className="text-3xl group-hover:-translate-y-1 transition-transform duration-300">{item.icon}</span>
+                    <span className={`font-bold text-sm ${item.color}`}>{item.label}</span>
                 </button>
             ))}
             <button 
                 onClick={logout}
-                className="bg-gray-50 border-gray-200 border hover:shadow-lg transition-all p-4 rounded-xl flex flex-col items-center justify-center gap-2 group h-32"
+                className="bg-gray-50 border border-gray-200 hover:bg-red-50 hover:border-red-200 hover:shadow-md transition-all p-4 rounded-xl flex flex-col items-center justify-center gap-3 group h-32"
             >
-                <span className="text-3xl group-hover:scale-110 transition-transform">🚪</span>
-                <span className="text-xs font-mono opacity-50 text-[var(--color-text-muted)]">[0]</span>
-                <span className="font-bold text-gray-600">تسجيل خروج</span>
+                <span className="text-3xl group-hover:-translate-y-1 transition-transform duration-300">🚪</span>
+                <span className="font-bold text-sm text-gray-600 group-hover:text-red-600">خروج</span>
             </button>
         </div>
     );
@@ -253,14 +247,14 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
                 };
 
                 return (
-                    <div className="space-y-8">
+                    <div className="space-y-8 animate-fade-in">
                         {/* Elegant Stats Bar */}
                         <QuickStatsBar stats={stats} />
 
                         {/* Main Menu Grid */}
                         <div>
-                            <h3 className="text-xl font-bold text-[var(--color-primary)] mb-4 flex items-center gap-2">
-                                <span>🔷</span> القائمة الرئيسية
+                            <h3 className="text-xl font-bold text-[var(--color-primary)] mb-6 flex items-center gap-2 border-b border-[var(--color-border)] pb-2">
+                                🚀 الوصول السريع
                             </h3>
                             <MenuGrid onItemClick={setActiveTab} logout={logout} />
                         </div>
@@ -268,7 +262,7 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
                         {/* Active Courses - Elegant Card Design */}
                         {activeCourses.length > 0 && (
                             <div>
-                                <h3 className="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
+                                <h3 className="text-xl font-bold text-green-700 mb-6 flex items-center gap-2">
                                     <span>🟢</span> الدورات النشطة حالياً
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -278,53 +272,46 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
                                         const remainingDays = Math.max(0, getDaysDifference(course.end_date));
                                         
                                         return (
-                                            <div key={course.id} className="bg-[var(--color-card)] rounded-lg shadow-md border-t-4 border-green-500 overflow-hidden transition-transform hover:scale-[1.01]">
+                                            <div key={course.id} className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden hover:shadow-md transition-all duration-300">
                                                 {/* Title */}
-                                                <div className="p-4 border-b border-gray-100 bg-green-50/50">
-                                                    <h4 className="font-bold text-lg text-green-800 flex items-center gap-2">
-                                                        <span>📚</span> {course.name}
+                                                <div className="p-5 border-b border-[var(--color-border)] bg-gradient-to-r from-green-50/50 to-transparent">
+                                                    <h4 className="font-bold text-lg text-green-900 flex items-center gap-2">
+                                                        📚 {course.name}
                                                     </h4>
                                                 </div>
                                                 
-                                                <div className="p-5 space-y-4">
+                                                <div className="p-6 space-y-5">
                                                     {/* Progress */}
                                                     <div>
-                                                        <div className="flex justify-between text-sm font-bold text-blue-700 mb-1">
-                                                            <span>⏳ التقدم:</span>
-                                                            <span>{progress}% مكتمل</span>
+                                                        <div className="flex justify-between text-xs font-bold text-[var(--color-text-muted)] mb-2">
+                                                            <span>التقدم الدراسي</span>
+                                                            <span className="text-green-600">{progress}%</span>
                                                         </div>
                                                         <ProgressBar percentage={progress} />
                                                     </div>
                                                     
                                                     {/* Details Row 1 */}
-                                                    <div className="flex flex-wrap justify-between items-center text-sm gap-4">
-                                                        <span className="flex items-center gap-2 text-orange-700 font-semibold bg-orange-50 px-3 py-1 rounded-full">
-                                                            <span>{timeIcon}</span> الوقت: {course.time_slot}
+                                                    <div className="flex flex-wrap gap-3">
+                                                        <span className="flex items-center gap-1 text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1.5 rounded-lg">
+                                                            {timeIcon} {course.time_slot}
                                                         </span>
-                                                        <span className="flex items-center gap-2 text-purple-700 font-semibold bg-purple-50 px-3 py-1 rounded-full">
-                                                            <span>👥</span> الطلاب: {course.current_students}/{course.max_students}
+                                                        <span className="flex items-center gap-1 text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1.5 rounded-lg">
+                                                            👥 {course.current_students}/{course.max_students} طالب
                                                         </span>
                                                     </div>
                                                     
                                                     {/* Footer Info */}
-                                                    <div className="flex justify-between items-center text-sm border-t border-gray-100 pt-3 mt-2">
-                                                        <span className="text-cyan-700 font-bold flex items-center gap-1">
-                                                            <span>📅</span> المتبقي: {remainingDays} يوم
+                                                    <div className="flex justify-between items-center text-sm pt-2">
+                                                        <span className="text-[var(--color-text-muted)] font-medium flex items-center gap-1 text-xs">
+                                                            📅 متبقي {remainingDays} يوم
                                                         </span>
-                                                        <span className="text-green-600 font-bold bg-green-100 px-2 py-1 rounded flex items-center gap-1">
-                                                            <span>✅</span> نشطة - مقاعد متاحة
-                                                        </span>
+                                                        <button 
+                                                            onClick={() => setActiveTab('addStudent')} 
+                                                            className="text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
+                                                        >
+                                                            سجل طالب الآن
+                                                        </button>
                                                     </div>
-                                                </div>
-
-                                                {/* Action Button */}
-                                                <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
-                                                     <button 
-                                                        onClick={() => setActiveTab('addStudent')} 
-                                                        className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition flex items-center justify-center gap-2"
-                                                    >
-                                                        <span>🎯</span> [سجل الآن] - انضم إلى الدورة
-                                                    </button>
                                                 </div>
                                             </div>
                                         );
@@ -336,73 +323,52 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
                         {/* Upcoming Courses - Elegant Card Design */}
                         {upcomingCourses.length > 0 && (
                             <div>
-                                <h3 className="text-xl font-bold text-orange-700 mb-4 flex items-center gap-2">
+                                <h3 className="text-xl font-bold text-orange-700 mb-6 flex items-center gap-2">
                                     <span>🟡</span> الدورات القادمة
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {upcomingCourses.map(course => {
                                         const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
                                         const daysUntil = getDaysDifference(course.start_date);
-                                        const statusColor = course.enrollment_open ? "text-green-600" : "text-red-600";
-                                        const statusBg = course.enrollment_open ? "bg-green-100" : "bg-red-100";
+                                        const statusColor = course.enrollment_open ? "text-green-700 bg-green-100" : "text-red-700 bg-red-100";
                                         const statusIcon = course.enrollment_open ? "🔓" : "🔒";
-                                        const seatsRemaining = course.max_students - course.current_students;
                                         
                                         return (
-                                             <div key={course.id} className="bg-[var(--color-card)] rounded-lg shadow-md border-t-4 border-orange-500 overflow-hidden transition-transform hover:scale-[1.01]">
-                                                {/* Title */}
-                                                <div className="p-4 border-b border-gray-100 bg-orange-50/50">
-                                                    <h4 className="font-bold text-lg text-orange-800 flex items-center gap-2">
-                                                        <span>🎯</span> {course.name}
+                                             <div key={course.id} className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden hover:shadow-md transition-all duration-300">
+                                                <div className="p-5 border-b border-[var(--color-border)] bg-gradient-to-r from-orange-50/50 to-transparent flex justify-between items-center">
+                                                    <h4 className="font-bold text-lg text-orange-900 flex items-center gap-2">
+                                                        🎯 {course.name}
                                                     </h4>
+                                                    <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">قريباً</span>
                                                 </div>
                                                 
-                                                <div className="p-5 space-y-4">
-                                                    {/* Date Row */}
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-blue-700 font-semibold flex items-center gap-1">
-                                                            <span>📅</span> الانطلاق: <span dir="ltr">{course.start_date}</span>
-                                                        </span>
-                                                        <span className="text-orange-600 font-bold flex items-center gap-1 bg-orange-50 px-2 py-1 rounded">
-                                                            <span>⏰</span> بعد {daysUntil} يوم
-                                                        </span>
+                                                <div className="p-6 space-y-5">
+                                                    <div className="flex items-center gap-3 p-3 bg-[var(--color-background)] rounded-xl border border-[var(--color-border)]">
+                                                        <span className="text-2xl">🗓️</span>
+                                                        <div>
+                                                            <p className="text-xs text-[var(--color-text-muted)] font-bold uppercase">تاريخ البدء</p>
+                                                            <p className="text-sm font-bold text-[var(--color-text-base)]">بعد {daysUntil} يوم <span className="font-normal opacity-60">({course.start_date})</span></p>
+                                                        </div>
                                                     </div>
                                                     
-                                                    {/* Info Row */}
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        <span className="text-cyan-700 font-semibold flex items-center gap-1">
-                                                            <span>{timeIcon}</span> الوقت: {course.time_slot}
+                                                    <div className="flex justify-between items-center pt-2">
+                                                        <span className={`font-bold flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs ${statusColor}`}>
+                                                            {statusIcon} {course.enrollment_open ? 'التسجيل مفتوح' : 'مغلق'}
                                                         </span>
-                                                        <span className="text-purple-700 font-semibold flex items-center gap-1">
-                                                            <span>👥</span> المسجلين: {course.current_students}/{course.max_students}
-                                                        </span>
+                                                        
+                                                        {course.enrollment_open ? (
+                                                            <button 
+                                                                onClick={() => setActiveTab('addStudent')} 
+                                                                className="text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded-lg transition-colors shadow-sm"
+                                                            >
+                                                                احجز مقعد
+                                                            </button>
+                                                        ) : (
+                                                             <button disabled className="text-xs font-bold text-gray-400 bg-gray-100 px-4 py-2 rounded-lg cursor-not-allowed">
+                                                                غير متاح
+                                                            </button>
+                                                        )}
                                                     </div>
-                                                    
-                                                    {/* Footer Status */}
-                                                    <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                                                        <span className={`font-bold flex items-center gap-1 px-3 py-1 rounded-full text-sm ${statusColor} ${statusBg}`}>
-                                                            {statusIcon} التسجيل: {course.enrollment_open ? 'مفتوح' : 'مغلق'}
-                                                        </span>
-                                                        <span className="font-bold text-green-700 flex items-center gap-1">
-                                                            <span>💺</span> {seatsRemaining} مقعد متبقي
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                 {/* Action Button */}
-                                                <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
-                                                    {course.enrollment_open ? (
-                                                        <button 
-                                                            onClick={() => setActiveTab('addStudent')} 
-                                                            className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition flex items-center justify-center gap-2"
-                                                        >
-                                                            <span>🎯</span> [احجز مقعدك] - سجل قبل انتهاء المقاعد
-                                                        </button>
-                                                    ) : (
-                                                         <button disabled className="w-full bg-gray-300 text-gray-600 font-bold py-2 px-4 rounded cursor-not-allowed flex items-center justify-center gap-2">
-                                                            <span>⏸️</span> [التسجيل مغلق] - انتظر الدفعة القادمة
-                                                        </button>
-                                                    )}
                                                 </div>
                                              </div>
                                         );
@@ -414,53 +380,26 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
                         {/* Available Courses - Elegant Card Design */}
                          {availableCourses.length > 0 && (
                             <div>
-                                <h3 className="text-xl font-bold text-green-700 mb-4 flex items-center gap-2">
-                                    <span>🔓</span> الدورات المتاحة للتسجيل
+                                <h3 className="text-xl font-bold text-blue-700 mb-6 flex items-center gap-2">
+                                    <span>🚀</span> فرص تسجيل متاحة
                                 </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {availableCourses.slice(0, 4).map(course => {
-                                        const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
                                         const seatsLeft = course.max_students - course.current_students;
-                                        const seatColor = seatsLeft > 5 ? 'text-green-600' : seatsLeft > 2 ? 'text-orange-600' : 'text-red-600';
-
                                         return (
-                                             <div key={course.id} className="bg-[var(--color-card)] rounded-lg shadow-md border-t-4 border-green-500 overflow-hidden hover:shadow-lg transition-shadow">
-                                                {/* Title */}
-                                                <div className="p-4 border-b border-gray-100 bg-green-50/30">
-                                                    <h4 className="font-bold text-green-900 text-md flex items-center gap-2">
-                                                        <span>📚</span> {course.name}
-                                                    </h4>
+                                             <div key={course.id} className="bg-[var(--color-card)] rounded-xl shadow-sm border border-[var(--color-border)] p-4 hover:border-blue-300 transition-colors cursor-pointer group" onClick={() => setActiveTab('addStudent')}>
+                                                <h4 className="font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">{course.name}</h4>
+                                                <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
+                                                    <span>{course.time_slot}</span>
+                                                    <span>📅 {course.start_date}</span>
                                                 </div>
-                                                
-                                                <div className="p-4 space-y-3 text-sm">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-blue-700 flex items-center gap-1">
-                                                            {timeIcon} {course.time_slot}
-                                                        </span>
-                                                        <span className="text-cyan-700 font-mono" dir="ltr">📅 {course.start_date}</span>
-                                                    </div>
-                                                    
-                                                    <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                                                        <span className="text-purple-700 flex items-center gap-1">
-                                                            👥 الحاليون: {course.current_students}
-                                                        </span>
-                                                        <span className={`font-bold flex items-center gap-1 ${seatColor}`}>
-                                                            💺 {seatsLeft} مقعد متبقي
-                                                        </span>
-                                                    </div>
-                                                     <div className="text-xs text-center text-gray-500 pt-1">
-                                                        🎯 السعة القصوى: {course.max_students} طالب
-                                                    </div>
-                                                </div>
-
-                                                 {/* Action Button */}
-                                                <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
-                                                    <button 
-                                                        onClick={() => setActiveTab('addStudent')}
-                                                        className="w-full bg-green-600 text-white font-bold py-2 px-4 rounded hover:bg-green-700 transition flex items-center justify-center gap-2"
-                                                    >
-                                                        <span>🚀</span> [سجل الآن] - احجز مقعدك قبل الانتهاء
-                                                    </button>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
+                                                        💺 {seatsLeft} مقعد
+                                                    </span>
+                                                    <span className="text-blue-500 text-sm group-hover:translate-x-[-2px] transition-transform">
+                                                        سجل ⬅
+                                                    </span>
                                                 </div>
                                              </div>
                                         );
@@ -472,267 +411,273 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
                 );
             case 'students':
                 return (
-                    <div className="bg-[var(--color-card)] p-4 md:p-6 rounded-lg shadow-md">
-                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-[var(--color-primary)]">قائمة الطلاب المسجلين عن طريقك:</h3>
-                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                    <div className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden animate-fade-in">
+                         <div className="flex justify-between items-center p-6 border-b border-[var(--color-border)]">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">قائمة طلابي</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors">✕ إغلاق</button>
                         </div>
                         
-                        {/* Mobile Card View */}
-                        <div className="space-y-4 md:hidden">
-                            {myStudents.map((student) => (
-                                <div key={student.id} className="bg-[var(--color-background)] p-4 rounded-lg shadow border-r-4 border-[var(--color-primary)]">
-                                    <p className="font-bold text-[var(--color-primary)] text-lg">{`${student.firstName} ${student.secondName} ${student.thirdName} ${student.lastName}`}</p>
-                                    <p className="text-sm text-[var(--color-text-muted)]">{student.phone}</p>
-                                    <div className="mt-2 pt-2 border-t border-[var(--color-border)] text-sm space-y-1">
-                                        <p><strong>الدورة:</strong> {student.course}</p>
-                                        <p><strong>التسجيل:</strong> {student.registrationDate}</p>
+                        <div className="p-6">
+                            {/* Mobile Card View */}
+                            <div className="space-y-4 md:hidden">
+                                {myStudents.map((student) => (
+                                    <div key={student.id} className="bg-[var(--color-background)] p-4 rounded-lg border border-[var(--color-border)]">
+                                        <div className="flex justify-between mb-2">
+                                            <p className="font-bold text-[var(--color-primary)]">{student.firstName} {student.lastName}</p>
+                                            <span className="text-xs text-gray-500">#{student.id}</span>
+                                        </div>
+                                        <p className="text-sm text-[var(--color-text-muted)] mb-2">{student.phone}</p>
+                                        <div className="flex justify-between items-center text-xs bg-white p-2 rounded border border-gray-100">
+                                            <span className="font-bold text-gray-700">{student.course}</span>
+                                            <span className="text-gray-500">{student.registrationDate}</span>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {/* Desktop Table View */}
-                        <div className="overflow-x-auto hidden md:block">
-                            <table className="w-full text-right">
-                                <thead className="bg-[var(--color-primary-light)] text-[var(--color-primary)]">
-                                    <tr>
-                                        <th className="p-3 font-semibold">الاسم الرباعي</th>
-                                        <th className="p-3 font-semibold">الهاتف</th>
-                                        <th className="p-3 font-semibold">الدورة</th>
-                                        <th className="p-3 font-semibold">تاريخ التسجيل</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {myStudents.map((student, index) => (
-                                        <tr key={student.id} className={`${index % 2 === 0 ? 'bg-[var(--color-card)]' : 'bg-[var(--color-background)]'} border-b border-[var(--color-border)] text-[var(--color-primary)]`}>
-                                            <td className="p-3">{`${student.firstName} ${student.secondName} ${student.thirdName} ${student.lastName}`}</td>
-                                            <td className="p-3">{student.phone}</td>
-                                            <td className="p-3">{student.course}</td>
-                                            <td className="p-3">{student.registrationDate}</td>
+                                ))}
+                            </div>
+                            
+                            {/* Desktop Table View */}
+                            <div className="overflow-x-auto hidden md:block">
+                                <table className="w-full text-right">
+                                    <thead className="bg-[var(--color-background)] text-[var(--color-text-muted)] text-xs uppercase tracking-wider font-bold">
+                                        <tr>
+                                            <th className="p-4 rounded-r-lg">الاسم الرباعي</th>
+                                            <th className="p-4">الهاتف</th>
+                                            <th className="p-4">الدورة</th>
+                                            <th className="p-4 rounded-l-lg">تاريخ التسجيل</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="text-sm text-[var(--color-text-base)]">
+                                        {myStudents.map((student, index) => (
+                                            <tr key={student.id} className="border-b border-[var(--color-border)] hover:bg-[var(--color-background)] transition-colors">
+                                                <td className="p-4 font-medium">{student.firstName} {student.secondName} {student.thirdName} {student.lastName}</td>
+                                                <td className="p-4 font-mono">{student.phone}</td>
+                                                <td className="p-4"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-lg text-xs font-bold">{student.course}</span></td>
+                                                <td className="p-4 font-mono text-gray-500">{student.registrationDate}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {myStudents.length === 0 && <div className="text-center p-12 text-[var(--color-text-muted)] bg-[var(--color-background)] rounded-lg mt-4 border border-dashed border-[var(--color-border)]">لا يوجد طلاب مسجلين.</div>}
                         </div>
-                        {myStudents.length === 0 && <div className="text-center p-8 text-[var(--color-text-muted)]">لم تقم بتسجيل أي طالب بعد.</div>}
                     </div>
                 );
             case 'addStudent':
                 return (
-                    <div>
-                        <div className="mb-4 text-left">
-                             <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                    <div className="animate-fade-in">
+                        <div className="mb-4 flex items-center gap-2 text-sm text-[var(--color-text-muted)] cursor-pointer hover:text-[var(--color-primary)]" onClick={() => setActiveTab('dashboard')}>
+                             <span>⬅</span> العودة للرئيسية
                         </div>
                         <RegistrationForm delegates={delegates} students={students} onAddStudent={onAddStudent} onRegistrationSuccess={() => setActiveTab('students')} delegateLockId={delegateProfile.id} />
                     </div>
                 );
             case 'addDelegate':
                  return (
-                    <div className="bg-[var(--color-card)] p-8 rounded-lg shadow-md text-center">
-                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🤝 إضافة مندوب جديد</h3>
-                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
-                        </div>
-                        <p className="text-[var(--color-text-muted)] mb-6">
-                            يمكنك إضافة مندوبين جدد إلى فريقك. سيتم تسجيلك كمرجع لهم.
+                    <div className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] p-8 max-w-2xl mx-auto text-center animate-fade-in">
+                         <div className="w-16 h-16 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">🤝</div>
+                         <h3 className="text-2xl font-bold text-[var(--color-primary)] mb-2">توسيع فريقك</h3>
+                         <p className="text-[var(--color-text-muted)] mb-8">
+                            قم بإضافة مندوبين جدد تحت إشرافك لزيادة شبكتك وتحقيق المزيد من النجاحات.
                         </p>
-                        <button onClick={() => setIsAddDelegateModalOpen(true)} className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-3 px-8 rounded-lg hover:bg-[var(--color-secondary-hover)] transition-colors duration-300 shadow-lg">
-                            فتح نموذج إضافة مندوب
+                        <button onClick={() => setIsAddDelegateModalOpen(true)} className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-3 px-8 rounded-xl hover:bg-[var(--color-secondary-hover)] transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                            تسجيل مندوب جديد
                         </button>
+                        <button onClick={() => setActiveTab('dashboard')} className="block mx-auto mt-4 text-sm text-[var(--color-text-muted)] hover:underline">إلغاء</button>
                     </div>
                 );
             case 'commissions':
                 return (
-                     <div className="bg-[var(--color-card)] p-4 md:p-6 rounded-lg shadow-md">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-[var(--color-primary)]">سجل العمولات الخاص بك:</h3>
-                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                     <div className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden animate-fade-in">
+                        <div className="flex justify-between items-center p-6 border-b border-[var(--color-border)]">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">سجل العمولات</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors">✕ إغلاق</button>
                         </div>
                         
-                        {/* Mobile Card View */}
-                        <div className="space-y-4 md:hidden">
-                            {myCommissions.map((commission) => (
-                                <div key={commission.id} className="bg-[var(--color-background)] p-4 rounded-lg shadow border-r-4 border-[var(--color-secondary)]">
-                                     <div className="flex justify-between items-start">
-                                        <p className="font-bold text-[var(--color-primary)] text-lg">{commission.studentName}</p>
-                                        <p className="text-lg font-bold text-[var(--color-secondary)]">{commission.amount} ريال</p>
-                                    </div>
-                                    <div className="mt-3 pt-3 border-t border-[var(--color-border)] grid grid-cols-2 gap-2 text-sm">
-                                        <div>
-                                            <label className="font-semibold block">حالة العمولة:</label>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${commissionStatusStyles[commission.status].classes}`}>{commissionStatusStyles[commission.status].icon} {commissionStatusStyles[commission.status].label}</span>
+                        <div className="p-6">
+                            {/* Mobile Card View */}
+                            <div className="space-y-4 md:hidden">
+                                {myCommissions.map((commission) => (
+                                    <div key={commission.id} className="bg-[var(--color-background)] p-4 rounded-lg border border-[var(--color-border)]">
+                                         <div className="flex justify-between items-center mb-2">
+                                            <span className="font-bold text-[var(--color-primary)]">{commission.studentName}</span>
+                                            <span className="text-lg font-black text-[var(--color-secondary)]">{commission.amount} ر.س</span>
                                         </div>
-                                         <div>
-                                            <label className="font-semibold block">حالة الطالب:</label>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${studentStatusStyles[commission.studentStatus].classes}`}>{studentStatusStyles[commission.studentStatus].icon} {studentStatusStyles[commission.studentStatus].label}</span>
+                                        <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                                            <div className={`px-2 py-1 rounded border flex items-center gap-1 ${commissionStatusStyles[commission.status].classes}`}>
+                                                {commissionStatusStyles[commission.status].icon} {commissionStatusStyles[commission.status].label}
+                                            </div>
+                                             <div className={`px-2 py-1 rounded border flex items-center gap-1 ${studentStatusStyles[commission.studentStatus].classes}`}>
+                                                {studentStatusStyles[commission.studentStatus].icon} {studentStatusStyles[commission.studentStatus].label}
+                                            </div>
                                         </div>
+                                        <p className="text-xs text-[var(--color-text-muted)] text-left font-mono">{commission.createdDate}</p>
                                     </div>
-                                    <p className="text-xs text-[var(--color-text-muted)] mt-2">تاريخ الإنشاء: {commission.createdDate}</p>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
 
-                        {/* Desktop Table View */}
-                        <div className="overflow-x-auto hidden md:block">
-                           <table className="w-full text-right">
-                               <thead className="bg-[var(--color-primary-light)] text-[var(--color-primary)]">
-                                   <tr>
-                                       <th className="p-3 font-semibold">الطالب</th>
-                                       <th className="p-3 font-semibold">المبلغ</th>
-                                       <th className="p-3 font-semibold">حالة العمولة</th>
-                                       <th className="p-3 font-semibold">حالة الطالب</th>
-                                       <th className="p-3 font-semibold">تاريخ الإنشاء</th>
-                                   </tr>
-                               </thead>
-                               <tbody>
-                                   {myCommissions.map((commission, index) => (
-                                       <tr key={commission.id} className={`${index % 2 === 0 ? 'bg-[var(--color-card)]' : 'bg-[var(--color-background)]'} border-b border-[var(--color-border)] text-[var(--color-primary)]`}>
-                                           <td className="p-3">{commission.studentName}</td>
-                                           <td className="p-3 font-bold">{commission.amount} ريال</td>
-                                           <td className="p-3"><span className={`px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap ${commissionStatusStyles[commission.status].classes}`}>{commissionStatusStyles[commission.status].icon} {commissionStatusStyles[commission.status].label}</span></td>
-                                           <td className="p-3"><span className={`px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap ${studentStatusStyles[commission.studentStatus].classes}`}>{studentStatusStyles[commission.studentStatus].icon} {studentStatusStyles[commission.studentStatus].label}</span></td>
-                                           <td className="p-3">{commission.createdDate}</td>
+                            {/* Desktop Table View */}
+                            <div className="overflow-x-auto hidden md:block">
+                               <table className="w-full text-right">
+                                   <thead className="bg-[var(--color-background)] text-[var(--color-text-muted)] text-xs uppercase tracking-wider font-bold">
+                                       <tr>
+                                           <th className="p-4 rounded-r-lg">الطالب</th>
+                                           <th className="p-4">المبلغ</th>
+                                           <th className="p-4">حالة العمولة</th>
+                                           <th className="p-4">حالة الطالب</th>
+                                           <th className="p-4 rounded-l-lg">تاريخ الإنشاء</th>
                                        </tr>
-                                   ))}
-                               </tbody>
-                           </table>
-                        </div>
-                        {myCommissions.length === 0 && <div className="text-center p-8 text-[var(--color-text-muted)]">لا توجد عمولات مسجلة لك بعد.</div>}
+                                   </thead>
+                                   <tbody className="text-sm">
+                                       {myCommissions.map((commission, index) => (
+                                           <tr key={commission.id} className="border-b border-[var(--color-border)] hover:bg-[var(--color-background)] transition-colors">
+                                               <td className="p-4 font-medium text-[var(--color-text-base)]">{commission.studentName}</td>
+                                               <td className="p-4 font-bold text-[var(--color-secondary)]">{commission.amount} ريال</td>
+                                               <td className="p-4"><span className={`px-2 py-1 rounded-md border text-xs font-bold flex w-fit items-center gap-1 ${commissionStatusStyles[commission.status].classes}`}>{commissionStatusStyles[commission.status].icon} {commissionStatusStyles[commission.status].label}</span></td>
+                                               <td className="p-4"><span className={`px-2 py-1 rounded-md border text-xs font-bold flex w-fit items-center gap-1 ${studentStatusStyles[commission.studentStatus].classes}`}>{studentStatusStyles[commission.studentStatus].icon} {studentStatusStyles[commission.studentStatus].label}</span></td>
+                                               <td className="p-4 font-mono text-gray-500">{commission.createdDate}</td>
+                                           </tr>
+                                       ))}
+                                   </tbody>
+                               </table>
+                            </div>
+                            {myCommissions.length === 0 && <div className="text-center p-12 text-[var(--color-text-muted)] bg-[var(--color-background)] rounded-lg mt-4 border border-dashed border-[var(--color-border)]">لا توجد عمولات.</div>}
+                       </div>
                    </div>
                 );
             case 'myNetwork':
                 return (
-                     <div className="bg-[var(--color-card)] p-4 md:p-6 rounded-lg shadow-md">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🌐 شبكة المندوبين المسجلين بواسطتي</h3>
-                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                     <div className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden animate-fade-in">
+                        <div className="flex justify-between items-center p-6 border-b border-[var(--color-border)]">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🌐 شبكتي</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors">✕ إغلاق</button>
                         </div>
                         
-                        {/* Mobile Card View */}
-                         <div className="space-y-4 md:hidden">
-                            {myNetwork.map((rep) => (
-                                <div key={rep.id} className="bg-[var(--color-background)] p-4 rounded-lg shadow border-r-4 border-[var(--color-primary)]">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-bold text-[var(--color-primary)] text-lg">{rep.fullName}</p>
-                                            <p className="text-sm text-[var(--color-text-muted)]">{rep.phone}</p>
+                        <div className="p-6">
+                             {/* Mobile Card View */}
+                             <div className="space-y-4 md:hidden">
+                                {myNetwork.map((rep) => (
+                                    <div key={rep.id} className="bg-[var(--color-background)] p-4 rounded-lg border border-[var(--color-border)]">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <p className="font-bold text-[var(--color-primary)]">{rep.fullName}</p>
+                                                <p className="text-xs text-[var(--color-text-muted)]">{rep.phone}</p>
+                                            </div>
+                                            <span className={`text-xs font-bold px-2 py-1 rounded ${rep.isActive ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'}`}>
+                                                {rep.isActive ? 'نشط' : 'غير نشط'}
+                                            </span>
                                         </div>
-                                        <span className={`font-semibold text-xs px-2 py-1 rounded-full ${rep.isActive ? 'text-green-800 bg-green-100' : 'text-red-800 bg-red-100'}`}>
-                                            {rep.isActive ? 'نشط' : 'غير نشط'}
-                                        </span>
+                                        <div className="flex justify-between items-center text-sm border-t border-[var(--color-border)] pt-2 mt-2">
+                                            <span className="text-[var(--color-text-muted)]">الطلاب: <span className="font-bold text-[var(--color-text-base)]">{rep.students}</span></span>
+                                            <span className="text-xs font-mono text-[var(--color-text-muted)]">{rep.createdDate}</span>
+                                        </div>
                                     </div>
-                                    <div className="mt-2 pt-2 border-t border-[var(--color-border)] text-sm grid grid-cols-2 gap-2">
-                                        <p><strong>تاريخ التسجيل:</strong> {rep.createdDate}</p>
-                                        <p><strong>عدد الطلاب:</strong> <span className="font-bold">{rep.students}</span></p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
 
-                        {/* Desktop Table View */}
-                        <div className="overflow-x-auto hidden md:block">
-                           <table className="w-full text-right">
-                               <thead className="bg-[var(--color-primary-light)] text-[var(--color-primary)]">
-                                   <tr>
-                                       <th className="p-3 font-semibold">الاسم</th>
-                                       <th className="p-3 font-semibold">الهاتف</th>
-                                       <th className="p-3 font-semibold">الحالة</th>
-                                       <th className="p-3 font-semibold">تاريخ التسجيل</th>
-                                       <th className="p-3 font-semibold">عدد الطلاب</th>
-                                   </tr>
-                               </thead>
-                               <tbody>
-                                   {myNetwork.map((rep, index) => (
-                                       <tr key={rep.id} className={`${index % 2 === 0 ? 'bg-[var(--color-card)]' : 'bg-[var(--color-background)]'} border-b border-[var(--color-border)]`}>
-                                           <td className="p-3 font-bold text-[var(--color-primary)]">{rep.fullName}</td>
-                                           <td className="p-3">{rep.phone}</td>
-                                           <td className="p-3">
-                                                <span className={`font-semibold ${rep.isActive ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {rep.isActive ? '🟢 نشط' : '🔴 غير نشط'}
-                                                </span>
-                                           </td>
-                                           <td className="p-3">{rep.createdDate}</td>
-                                           <td className="p-3 font-semibold text-center">{rep.students}</td>
+                            {/* Desktop Table View */}
+                            <div className="overflow-x-auto hidden md:block">
+                               <table className="w-full text-right">
+                                   <thead className="bg-[var(--color-background)] text-[var(--color-text-muted)] text-xs uppercase tracking-wider font-bold">
+                                       <tr>
+                                           <th className="p-4 rounded-r-lg">الاسم</th>
+                                           <th className="p-4">الهاتف</th>
+                                           <th className="p-4">الحالة</th>
+                                           <th className="p-4">عدد الطلاب</th>
+                                           <th className="p-4 rounded-l-lg">تاريخ التسجيل</th>
                                        </tr>
-                                   ))}
-                               </tbody>
-                           </table>
-                        </div>
-                        {myNetwork.length === 0 && <div className="text-center p-8 text-[var(--color-text-muted)]">لم تقم بتسجيل أي مندوبين بعد.</div>}
+                                   </thead>
+                                   <tbody className="text-sm">
+                                       {myNetwork.map((rep, index) => (
+                                           <tr key={rep.id} className="border-b border-[var(--color-border)] hover:bg-[var(--color-background)] transition-colors">
+                                               <td className="p-4 font-medium text-[var(--color-text-base)]">{rep.fullName}</td>
+                                               <td className="p-4 font-mono">{rep.phone}</td>
+                                               <td className="p-4">
+                                                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${rep.isActive ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'}`}>
+                                                        {rep.isActive ? 'نشط' : 'غير نشط'}
+                                                    </span>
+                                               </td>
+                                               <td className="p-4 font-bold text-center">{rep.students}</td>
+                                               <td className="p-4 font-mono text-gray-500">{rep.createdDate}</td>
+                                           </tr>
+                                       ))}
+                                   </tbody>
+                               </table>
+                            </div>
+                            {myNetwork.length === 0 && <div className="text-center p-12 text-[var(--color-text-muted)] bg-[var(--color-background)] rounded-lg mt-4 border border-dashed border-[var(--color-border)]">شبكتك فارغة حالياً.</div>}
+                       </div>
                    </div>
                 );
             case 'bankAccount':
                  return (
-                     <div className="bg-[var(--color-card)] p-8 rounded-lg shadow-md max-w-2xl mx-auto">
-                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🏦 حسابي البنكي</h3>
-                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                     <div className="bg-[var(--color-card)] p-8 rounded-2xl shadow-sm border border-[var(--color-border)] max-w-2xl mx-auto animate-fade-in">
+                         <div className="flex justify-between items-center mb-8 border-b border-[var(--color-border)] pb-4">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🏦 بيانات الحساب البنكي</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">إلغاء</button>
                         </div>
-                        <p className="text-[var(--color-text-muted)] mb-6">أدخل بيانات حسابك البنكي لاستلام العمولات.</p>
-                        <form onSubmit={handleBankDetailsSubmit} className="space-y-4">
+                        
+                        <form onSubmit={handleBankDetailsSubmit} className="space-y-5">
                              <div>
-                                <label htmlFor="bankName" className="block font-semibold mb-2">اسم البنك:</label>
-                                <input type="text" id="bankName" value={bankDetails.bankName} onChange={e => setBankDetails({...bankDetails, bankName: e.target.value})} required className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-card)]" />
+                                <label htmlFor="bankName" className="block font-bold text-sm text-[var(--color-text-muted)] mb-1">اسم البنك</label>
+                                <input type="text" id="bankName" value={bankDetails.bankName} onChange={e => setBankDetails({...bankDetails, bankName: e.target.value})} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-background)]" placeholder="مثال: بنك الراجحي" />
                             </div>
                             <div>
-                                <label htmlFor="accountHolder" className="block font-semibold mb-2">اسم صاحب الحساب:</label>
-                                <input type="text" id="accountHolder" value={bankDetails.accountHolder} onChange={e => setBankDetails({...bankDetails, accountHolder: e.target.value})} required className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-card)]" />
+                                <label htmlFor="accountHolder" className="block font-bold text-sm text-[var(--color-text-muted)] mb-1">اسم صاحب الحساب</label>
+                                <input type="text" id="accountHolder" value={bankDetails.accountHolder} onChange={e => setBankDetails({...bankDetails, accountHolder: e.target.value})} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-background)]" placeholder="الاسم كما يظهر في البطاقة" />
                             </div>
                             <div>
-                                <label htmlFor="bankAccount" className="block font-semibold mb-2">رقم الحساب / IBAN:</label>
-                                <input type="text" id="bankAccount" value={bankDetails.bankAccount} onChange={e => setBankDetails({...bankDetails, bankAccount: e.target.value})} required className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-card)]" />
+                                <label htmlFor="bankAccount" className="block font-bold text-sm text-[var(--color-text-muted)] mb-1">رقم الآيبان (IBAN)</label>
+                                <input type="text" id="bankAccount" value={bankDetails.bankAccount} onChange={e => setBankDetails({...bankDetails, bankAccount: e.target.value})} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-background)] font-mono text-sm" placeholder="SA..." />
                             </div>
-                            <div className="text-center pt-4">
-                                <button type="submit" className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-2 px-8 rounded-lg hover:bg-[var(--color-secondary-hover)] transition-colors">حفظ البيانات</button>
+                            <div className="pt-6">
+                                <button type="submit" className="w-full bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-3 px-8 rounded-xl hover:bg-[var(--color-secondary-hover)] transition-all shadow-md">حفظ التغييرات</button>
                             </div>
                         </form>
                     </div>
                  );
             case 'profile':
                 return (
-                    <div className="bg-[var(--color-card)] p-8 rounded-lg shadow-md max-w-2xl mx-auto">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-[var(--color-primary)]">👤 بياناتي الشخصية</h3>
-                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                    <div className="bg-[var(--color-card)] p-8 rounded-2xl shadow-sm border border-[var(--color-border)] max-w-2xl mx-auto animate-fade-in">
+                        <div className="flex justify-between items-center mb-8 border-b border-[var(--color-border)] pb-4">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">👤 الملف الشخصي</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">إلغاء</button>
                         </div>
-                       <form onSubmit={handleProfileSubmit} className="space-y-4">
+                       <form onSubmit={handleProfileSubmit} className="space-y-5">
                             <div>
-                               <label htmlFor="fullName" className="block font-semibold mb-2">الاسم الكامل:</label>
-                               <input type="text" id="fullName" value={profileDetails.fullName} onChange={e => setProfileDetails({...profileDetails, fullName: e.target.value})} required className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-card)]" />
+                               <label htmlFor="fullName" className="block font-bold text-sm text-[var(--color-text-muted)] mb-1">الاسم الكامل</label>
+                               <input type="text" id="fullName" value={profileDetails.fullName} onChange={e => setProfileDetails({...profileDetails, fullName: e.target.value})} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-background)]" />
                            </div>
                            <div>
-                               <label htmlFor="email" className="block font-semibold mb-2">البريد الإلكتروني:</label>
-                               <input type="email" id="email" value={profileDetails.email} onChange={e => setProfileDetails({...profileDetails, email: e.target.value})} required className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-card)]" />
+                               <label htmlFor="email" className="block font-bold text-sm text-[var(--color-text-muted)] mb-1">البريد الإلكتروني</label>
+                               <input type="email" id="email" value={profileDetails.email} onChange={e => setProfileDetails({...profileDetails, email: e.target.value})} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-background)]" />
                            </div>
-                           <div className="text-center pt-4">
-                               <button type="submit" className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-2 px-8 rounded-lg hover:bg-[var(--color-secondary-hover)] transition-colors">تحديث البيانات</button>
+                           <div className="pt-6">
+                               <button type="submit" className="w-full bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-3 px-8 rounded-xl hover:bg-[var(--color-secondary-hover)] transition-all shadow-md">حفظ البيانات</button>
                            </div>
                        </form>
                    </div>
                 );
             case 'changePassword':
                  return (
-                     <div className="bg-[var(--color-card)] p-8 rounded-lg shadow-md max-w-2xl mx-auto">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🔐 تغيير كلمة المرور</h3>
-                            <button onClick={() => setActiveTab('dashboard')} className="text-blue-600 font-bold hover:underline text-sm">🔙 العودة للرئيسية</button>
+                     <div className="bg-[var(--color-card)] p-8 rounded-2xl shadow-sm border border-[var(--color-border)] max-w-2xl mx-auto animate-fade-in">
+                        <div className="flex justify-between items-center mb-8 border-b border-[var(--color-border)] pb-4">
+                            <h3 className="text-xl font-bold text-[var(--color-primary)]">🔐 الأمان</h3>
+                            <button onClick={() => setActiveTab('dashboard')} className="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)]">إلغاء</button>
                         </div>
-                        <form onSubmit={handlePasswordChangeSubmit} className="space-y-4">
+                        <form onSubmit={handlePasswordChangeSubmit} className="space-y-5">
                              <div>
-                                <label htmlFor="currentPassword" className="block font-semibold mb-2">كلمة المرور الحالية:</label>
-                                <input type="password" id="currentPassword" value={passwordDetails.currentPassword} onChange={e => setPasswordDetails({...passwordDetails, currentPassword: e.target.value})} required className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-card)]" />
+                                <label htmlFor="currentPassword" className="block font-bold text-sm text-[var(--color-text-muted)] mb-1">كلمة المرور الحالية</label>
+                                <input type="password" id="currentPassword" value={passwordDetails.currentPassword} onChange={e => setPasswordDetails({...passwordDetails, currentPassword: e.target.value})} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-background)]" />
                             </div>
                             <div>
-                                <label htmlFor="newPassword" className="block font-semibold mb-2">كلمة المرور الجديدة:</label>
-                                <input type="password" id="newPassword" value={passwordDetails.newPassword} onChange={e => setPasswordDetails({...passwordDetails, newPassword: e.target.value})} required className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-card)]" />
+                                <label htmlFor="newPassword" className="block font-bold text-sm text-[var(--color-text-muted)] mb-1">كلمة المرور الجديدة</label>
+                                <input type="password" id="newPassword" value={passwordDetails.newPassword} onChange={e => setPasswordDetails({...passwordDetails, newPassword: e.target.value})} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-background)]" />
                             </div>
                             <div>
-                                <label htmlFor="confirmPassword" className="block font-semibold mb-2">تأكيد كلمة المرور الجديدة:</label>
-                                <input type="password" id="confirmPassword" value={passwordDetails.confirmPassword} onChange={e => setPasswordDetails({...passwordDetails, confirmPassword: e.target.value})} required className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-card)]" />
+                                <label htmlFor="confirmPassword" className="block font-bold text-sm text-[var(--color-text-muted)] mb-1">تأكيد كلمة المرور</label>
+                                <input type="password" id="confirmPassword" value={passwordDetails.confirmPassword} onChange={e => setPasswordDetails({...passwordDetails, confirmPassword: e.target.value})} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] transition bg-[var(--color-background)]" />
                             </div>
-                            <div className="text-center pt-4">
-                                <button type="submit" className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-2 px-8 rounded-lg hover:bg-[var(--color-secondary-hover)] transition-colors">تغيير كلمة المرور</button>
+                            <div className="pt-6">
+                                <button type="submit" className="w-full bg-red-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-red-700 transition-all shadow-md">تغيير كلمة المرور</button>
                             </div>
                         </form>
                     </div>
@@ -742,21 +687,32 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
     }
 
     return (
-        <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-base)]">
+        <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text-base)] font-sans">
              <UserStaffModal isOpen={isAddDelegateModalOpen} onClose={() => setIsAddDelegateModalOpen(false)} onSave={handleSaveDelegate} userToEdit={null} delegateToEdit={null} allowedRoles={['delegate']} />
-            <header className="bg-[var(--color-card)] shadow-md p-4 flex justify-between items-center sticky top-0 z-20">
-                <h1 className="text-lg md:text-xl font-bold text-[var(--color-primary)]">🤝 لوحة تحكم المندوب</h1>
+            <header className="bg-[var(--color-card)] shadow-sm border-b border-[var(--color-border)] p-4 flex justify-between items-center sticky top-0 z-20">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[var(--color-primary-light)] flex items-center justify-center text-xl">🎓</div>
+                    <div>
+                        <h1 className="text-base md:text-lg font-bold text-[var(--color-primary)] leading-tight">نظام المندوب</h1>
+                        <p className="text-[10px] text-[var(--color-text-muted)]">لوحة التحكم</p>
+                    </div>
+                </div>
                 <div className="flex items-center gap-4">
-                    <span className="font-semibold hidden sm:inline">{currentUser.fullName}</span>
-                    <button onClick={logout} className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-1 px-3 md:py-2 md:px-4 rounded-lg hover:bg-[var(--color-secondary-hover)] transition-colors duration-300 flex items-center gap-2 text-sm md:text-base">
+                    <div className="hidden md:block text-left">
+                        <p className="text-sm font-bold text-[var(--color-text-base)]">{currentUser.fullName}</p>
+                        <p className="text-[10px] text-[var(--color-text-muted)]">المندوب</p>
+                    </div>
+                    <button onClick={logout} className="bg-red-50 text-red-600 font-bold py-2 px-4 rounded-xl hover:bg-red-100 transition-colors duration-300 flex items-center gap-2 text-xs md:text-sm border border-red-100">
                         <span className="hidden sm:inline">تسجيل الخروج</span>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" /></svg>
                     </button>
                 </div>
             </header>
-            <main className="p-4 md:p-8">
-                <AppHeader />
-                <div className="mt-8">
+            <main className="p-4 md:p-8 max-w-7xl mx-auto">
+                <div className="mb-8">
+                    <AppHeader />
+                </div>
+                <div className="mt-4">
                      {notification && <Notification message={notification.message} type={notification.type} />}
                     {renderContent()}
                 </div>

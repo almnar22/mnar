@@ -6,14 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 // Make sure SheetJS is loaded from index.html
 declare const XLSX: any;
 
-
-/**
- * Normalizes an Arabic string for comparison purposes.
- * - Replaces different forms of Alef with a standard Alef.
- * - Replaces Taa Marbuta with Haa.
- * - Removes Arabic diacritics (tashkeel).
- * - Collapses multiple whitespace characters into a single space and trims.
- */
 const normalizeArabic = (str: string): string => {
     if (!str) return '';
     return str
@@ -26,12 +18,12 @@ const normalizeArabic = (str: string): string => {
 
 
 const Notification: React.FC<{ message: string; type: 'success' | 'error' }> = ({ message, type }) => {
-    const baseClasses = "p-4 rounded-md text-[var(--color-primary-text)] font-bold mb-4 flex items-center gap-2 whitespace-pre-wrap";
+    const baseClasses = "p-4 rounded-xl text-[var(--color-primary-text)] font-bold mb-4 flex items-center gap-2 whitespace-pre-wrap shadow-sm animate-fade-in";
     const typeClasses = {
         success: "bg-[var(--color-secondary)]",
         error: "bg-[var(--color-primary)]"
     };
-    const icon = type === 'success' ? '✅ 🔶' : '❌ 🔷';
+    const icon = type === 'success' ? '✅' : '⚠️';
     return <div className={`${baseClasses} ${typeClasses[type]}`}>{icon} {message}</div>;
 }
 
@@ -45,31 +37,31 @@ const DeleteConfirmationModal: React.FC<{
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex justify-center items-center p-4 animate-fade-in">
-            <div className="bg-[var(--color-card)] rounded-lg shadow-2xl w-full max-w-md transform transition-all scale-100 border-t-4 border-red-600">
-                <div className="p-6 text-center">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl">⚠️</span>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex justify-center items-center p-4 animate-fade-in">
+            <div className="bg-[var(--color-card)] rounded-2xl shadow-2xl w-full max-w-md transform transition-all scale-100 border-t-4 border-red-500 p-6">
+                <div className="text-center">
+                    <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                        🗑️
                     </div>
                     <h3 className="text-xl font-bold text-[var(--color-text-base)] mb-2">تأكيد الحذف</h3>
-                    <p className="text-[var(--color-text-muted)] mb-6">
+                    <p className="text-[var(--color-text-muted)] mb-6 leading-relaxed">
                         هل أنت متأكد من رغبتك في حذف الطالب <br/>
-                        <span className="font-bold text-[var(--color-primary)] text-lg">{studentName}</span>؟<br/>
-                        <span className="text-xs text-red-500 mt-2 block">لا يمكن التراجع عن هذا الإجراء.</span>
+                        <span className="font-bold text-[var(--color-primary)] text-lg block mt-1">{studentName}</span>
+                        <span className="text-xs text-red-500 mt-2 block font-bold bg-red-50 py-1 rounded">⚠️ لا يمكن التراجع عن هذا الإجراء</span>
                     </p>
                     
                     <div className="flex justify-center gap-3">
                         <button 
                             onClick={onClose}
-                            className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300 transition"
+                            className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition"
                         >
                             إلغاء
                         </button>
                         <button 
                             onClick={onConfirm}
-                            className="px-5 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition shadow-lg flex items-center gap-2"
+                            className="px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition shadow-lg flex items-center gap-2"
                         >
-                            <span>🗑️</span> نعم، حذف
+                            نعم، احذف
                         </button>
                     </div>
                 </div>
@@ -93,7 +85,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ delegates, s
     const [notification, setNotification] = useState<{message: string; type: 'success' | 'error'} | null>(null);
     const activeDelegates = delegates.filter(d => d.isActive);
 
-    // Memoized map of normalized full names to student objects for efficient duplicate checking.
     const existingStudentMap = useMemo(() => {
         const nameMap = new Map<string, Student>();
         students.forEach(student => {
@@ -127,7 +118,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ delegates, s
             return;
         }
 
-        // Duplicate check using normalized names
         const newFullName = `${newStudentData.firstName} ${newStudentData.secondName} ${newStudentData.thirdName} ${newStudentData.lastName}`;
         const normalizedNewName = normalizeArabic(newFullName);
         
@@ -135,9 +125,9 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ delegates, s
             const duplicateStudent = existingStudentMap.get(normalizedNewName)!;
             const duplicateFullName = `${duplicateStudent.firstName} ${duplicateStudent.secondName} ${duplicateStudent.thirdName} ${duplicateStudent.lastName}`;
 
-            const errorMessage = `❌ 🔷 خطأ! الطالب مسجل مسبقاً\n──────────────────────────────────\nالاسم الرباعي: ${duplicateFullName}\nرقم الهاتف المسجل: ${duplicateStudent.phone}\nتاريخ التسجيل: ${duplicateStudent.registrationDate}`;
+            const errorMessage = `❌ خطأ! الطالب مسجل مسبقاً\nالاسم: ${duplicateFullName}\nالهاتف: ${duplicateStudent.phone}`;
             setNotification({ message: errorMessage, type: 'error' });
-            setTimeout(() => setNotification(null), 7000); // Longer timeout for detailed info
+            setTimeout(() => setNotification(null), 7000); 
             return;
         }
 
@@ -154,12 +144,14 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ delegates, s
     };
 
     return (
-        <div>
+        <div className="animate-fade-in">
             {notification && <Notification message={notification.message} type={notification.type} />}
-            <form onSubmit={handleSubmit} className="bg-[var(--color-card)] p-8 rounded-lg shadow-md space-y-8 border-t-4 border-[var(--color-secondary)]">
+            <form onSubmit={handleSubmit} className="bg-[var(--color-card)] p-8 rounded-2xl shadow-sm border border-[var(--color-border)] space-y-8">
                 <div>
-                    <h3 className="text-xl font-bold text-[var(--color-primary)] border-b-2 border-[var(--color-primary-light)] pb-2 mb-4">🔷 البيانات الشخصية للطالب:</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <h3 className="text-lg font-bold text-[var(--color-primary)] flex items-center gap-2 border-b border-[var(--color-border)] pb-2 mb-4">
+                        <span className="bg-[var(--color-primary-light)] p-1 rounded">👤</span> البيانات الشخصية
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
                         <InputField label="الاسم الأول" id="firstName" />
                         <InputField label="الاسم الثاني" id="secondName" />
                         <InputField label="الاسم الثالث" id="thirdName" />
@@ -167,23 +159,34 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({ delegates, s
                         <InputField label="رقم الهاتف" id="phone" type="tel" className="md:col-span-2 lg:col-span-4" />
                     </div>
                 </div>
-                <div>
-                    <h3 className="text-xl font-bold text-[var(--color-secondary)] border-b-2 border-[var(--color-secondary-light)] pb-2 mb-4">🔶 اختر الدورة:</h3>
-                    <SelectField id="course" options={Object.values(Course).map(c => ({ value: c, label: c }))} />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h3 className="text-lg font-bold text-[var(--color-secondary)] flex items-center gap-2 border-b border-[var(--color-border)] pb-2 mb-4">
+                            <span className="bg-[var(--color-secondary-light)] p-1 rounded">📚</span> تفاصيل الدورة
+                        </h3>
+                        <SelectField id="course" options={Object.values(Course).map(c => ({ value: c, label: c }))} label="اختر الدورة" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-[var(--color-primary)] flex items-center gap-2 border-b border-[var(--color-border)] pb-2 mb-4">
+                            <span className="bg-[var(--color-primary-light)] p-1 rounded">⏰</span> التوقيت
+                        </h3>
+                        <SelectField id="schedule" options={Object.values(Schedule).map(s => ({ value: s, label: s }))} label="اختر الوقت" />
+                    </div>
                 </div>
-                <div>
-                    <h3 className="text-xl font-bold text-[var(--color-primary)] border-b-2 border-[var(--color-primary-light)] pb-2 mb-4">🔷 اختر وقت الدوام:</h3>
-                    <SelectField id="schedule" options={Object.values(Schedule).map(s => ({ value: s, label: s }))} />
-                </div>
+                
                 {!delegateLockId && (
                 <div>
-                    <h3 className="text-xl font-bold text-[var(--color-secondary)] border-b-2 border-[var(--color-secondary-light)] pb-2 mb-4">🔶 اختر المندوب:</h3>
-                    <SelectField id="delegateId" options={activeDelegates.map(d => ({ value: d.id.toString(), label: `${d.fullName} - ${d.phone}` }))} />
+                    <h3 className="text-lg font-bold text-gray-600 flex items-center gap-2 border-b border-[var(--color-border)] pb-2 mb-4">
+                         <span className="bg-gray-100 p-1 rounded">🤝</span> المندوب
+                    </h3>
+                    <SelectField id="delegateId" options={activeDelegates.map(d => ({ value: d.id.toString(), label: `${d.fullName} - ${d.phone}` }))} label="اختر المندوب" />
                 </div>
                 )}
-                <div className="text-center pt-4">
-                    <button type="submit" className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-3 px-12 rounded-lg hover:bg-[var(--color-secondary-hover)] transition-colors duration-300 text-lg shadow-lg">
-                        تأكيد التسجيل
+                
+                <div className="pt-6 border-t border-[var(--color-border)] text-center">
+                    <button type="submit" className="bg-gradient-to-r from-[var(--color-secondary)] to-orange-600 text-[var(--color-primary-text)] font-bold py-3 px-12 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300 text-lg shadow-md">
+                        تأكيد التسجيل ✨
                     </button>
                 </div>
             </form>
@@ -221,13 +224,13 @@ const EditStudentModal: React.FC<{
     };
     
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-start p-4 overflow-y-auto">
-            <div className="bg-[var(--color-card)] rounded-lg shadow-xl w-full max-w-2xl my-8">
-                 <div className="bg-[var(--color-primary)] text-[var(--color-primary-text)] p-4 rounded-t-lg flex justify-between items-center">
-                    <h3 className="text-xl font-bold">تعديل بيانات الطالب: {student.firstName}</h3>
-                    <button onClick={onClose} className="text-2xl font-bold hover:opacity-80 transition-opacity">&times;</button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-start p-4 overflow-y-auto animate-fade-in">
+            <div className="bg-[var(--color-card)] rounded-2xl shadow-2xl w-full max-w-2xl my-8 overflow-hidden">
+                 <div className="bg-[var(--color-primary)] text-[var(--color-primary-text)] p-5 flex justify-between items-center">
+                    <h3 className="text-xl font-bold">تعديل بيانات الطالب</h3>
+                    <button onClick={onClose} className="bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center transition">&times;</button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <InputField value={formData.firstName} onChange={handleChange} label="الاسم الأول" id="firstName" />
                         <InputField value={formData.secondName} onChange={handleChange} label="الاسم الثاني" id="secondName" />
@@ -238,9 +241,9 @@ const EditStudentModal: React.FC<{
                      <SelectField value={formData.course} onChange={handleChange} id="course" label="الدورة" options={Object.values(Course).map(c => ({ value: c, label: c }))} />
                      <SelectField value={formData.schedule} onChange={handleChange} id="schedule" label="وقت الدوام" options={Object.values(Schedule).map(s => ({ value: s, label: s }))} />
                      <SelectField value={String(formData.delegateId)} onChange={handleChange} id="delegateId" label="المندوب" options={delegates.map(d => ({ value: d.id.toString(), label: d.fullName }))} />
-                    <div className="flex justify-end gap-4 pt-4">
-                        <button type="button" onClick={onClose} className="bg-[var(--color-border)] text-[var(--color-text-base)] font-bold py-2 px-6 rounded-lg hover:brightness-95 transition-all">إلغاء</button>
-                        <button type="submit" className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-2 px-6 rounded-lg hover:bg-[var(--color-secondary-hover)] transition-colors">حفظ التعديلات</button>
+                    <div className="flex justify-end gap-4 pt-6 border-t border-[var(--color-border)]">
+                        <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition">إلغاء</button>
+                        <button type="submit" className="bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-2.5 px-6 rounded-xl hover:bg-[var(--color-secondary-hover)] transition-colors shadow-md">حفظ التعديلات</button>
                     </div>
                 </form>
             </div>
@@ -264,7 +267,6 @@ const StudentLog: React.FC<{
     const [studentToEdit, setStudentToEdit] = useState<Student | null>(null);
     const [notification, setNotification] = useState<{message: string; type: 'success' | 'error'} | null>(null);
     
-    // Delete Modal State
     const [deleteModalState, setDeleteModalState] = useState<{isOpen: boolean, studentId: number | null, studentName: string}>({
         isOpen: false,
         studentId: null,
@@ -402,7 +404,7 @@ const StudentLog: React.FC<{
 
                 for (let i = 1; i < json.length; i++) {
                     const row = json[i];
-                    if (row.every((cell: any) => cell === null || cell === '')) continue; // Skip empty rows
+                    if (row.every((cell: any) => cell === null || cell === '')) continue;
 
                     const studentData: any = {};
                     mappedHeaders.forEach((key: string, index: number) => {
@@ -437,11 +439,11 @@ const StudentLog: React.FC<{
                     importedCount++;
                 }
                 
-                setNotification({ message: `✅ تمت عملية الاستيراد بنجاح.\nتم استيراد ${importedCount} طالب.\nتم تخطي ${skippedCount} طالب بسبب التكرار أو نقص البيانات.`, type: 'success' });
+                setNotification({ message: `✅ تمت عملية الاستيراد بنجاح.\nتم استيراد ${importedCount} طالب.\nتم تخطي ${skippedCount} طالب.`, type: 'success' });
 
             } catch (error) {
                 console.error("Error importing file:", error);
-                setNotification({ message: '❌ حدث خطأ أثناء استيراد الملف. يرجى التأكد من تنسيق الملف.', type: 'error' });
+                setNotification({ message: '❌ حدث خطأ أثناء استيراد الملف.', type: 'error' });
             } finally {
                 if(event.target) event.target.value = '';
                 setTimeout(() => setNotification(null), 8000);
@@ -479,7 +481,7 @@ const StudentLog: React.FC<{
         const isActive = sortConfig.key === sortKey;
         const icon = isActive ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : '↕';
         return (
-            <th className="p-3 font-semibold cursor-pointer select-none text-[var(--color-primary-text)] whitespace-nowrap" onClick={() => requestSort(sortKey)}>
+            <th className="p-3 font-semibold cursor-pointer select-none text-[var(--color-primary-text)] whitespace-nowrap bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] transition-colors" onClick={() => requestSort(sortKey)}>
                 <div className="flex items-center justify-start gap-2">
                     <span>{children}</span>
                     <span className="opacity-70 text-xs">{icon}</span>
@@ -489,7 +491,7 @@ const StudentLog: React.FC<{
     };
 
     return (
-        <div className="bg-[var(--color-card)] p-6 rounded-lg shadow-md">
+        <div className="bg-[var(--color-card)] p-6 rounded-2xl shadow-sm border border-[var(--color-border)] animate-fade-in">
             {notification && <Notification message={notification.message} type={notification.type} />}
             {studentToEdit && <EditStudentModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} student={studentToEdit} delegates={delegates} onSave={onEditStudent} />}
             
@@ -500,85 +502,46 @@ const StudentLog: React.FC<{
                 studentName={deleteModalState.studentName}
             />
 
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b-2 border-[var(--color-primary-light)] pb-4">
-                <div className="text-xl font-bold text-[var(--color-text-base)]">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div className="text-xl font-bold text-[var(--color-text-base)] bg-[var(--color-background)] px-4 py-2 rounded-lg border border-[var(--color-border)]">
                     📋 إجمالي الطلاب: <span className="text-[var(--color-secondary)]">{sortedAndFilteredStudents.length}</span>
                 </div>
                 {currentUser?.role === 'admin' && (
                     <div className="flex gap-2 w-full md:w-auto">
                         <input type="file" ref={fileInputRef} onChange={handleFileImport} className="hidden" accept=".xlsx, .xls, .csv" />
-                        <button onClick={handleImportClick} className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-text)] font-bold py-2 px-4 rounded-lg hover:bg-[var(--color-primary-hover)] transition-colors flex items-center gap-2 shadow justify-center">
-                           <span>📤</span> استيراد
+                        <button onClick={handleImportClick} className="flex-1 bg-white border border-[var(--color-border)] text-[var(--color-text-base)] font-bold py-2 px-4 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm justify-center">
+                           <span className="text-lg">📤</span> استيراد
                         </button>
-                        <button onClick={handleExport} className="flex-1 bg-[var(--color-secondary)] text-[var(--color-primary-text)] font-bold py-2 px-4 rounded-lg hover:bg-[var(--color-secondary-hover)] transition-colors flex items-center gap-2 shadow justify-center">
-                            <span>📥</span> تصدير
+                        <button onClick={handleExport} className="flex-1 bg-white border border-[var(--color-border)] text-[var(--color-text-base)] font-bold py-2 px-4 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-sm justify-center">
+                            <span className="text-lg">📥</span> تصدير
                         </button>
                     </div>
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <input
-                    type="text"
-                    placeholder="🔍 ابحث بالاسم الرباعي أو رقم الهاتف..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-card)] text-[var(--color-text-base)]"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="relative">
+                    <input
+                        type="text"
+                        placeholder="🔍 ابحث بالاسم الرباعي أو الهاتف..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-4 pr-10 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-background)]"
+                    />
+                    <span className="absolute right-3 top-3.5 opacity-50">🔎</span>
+                </div>
                 <select
                     value={filterDelegate}
                     onChange={(e) => setFilterDelegate(e.target.value)}
-                    className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-card)] text-[var(--color-text-base)]"
+                    className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-background)]"
                 >
                     <option value="">🏢 تصفية حسب المندوب (الكل)</option>
                     {delegates.map(d => <option key={d.id} value={d.id}>{d.fullName}</option>)}
                 </select>
             </div>
             
-            <details className="mb-4 bg-[var(--color-background)] p-3 rounded-lg border border-[var(--color-border)]">
-                <summary className="cursor-pointer font-semibold text-[var(--color-primary)]">📊 عرض إحصائيات المندوبين</summary>
-                <div className="mt-2 space-y-2 pt-2 border-t border-[var(--color-border)]">
-                    {delegates.filter(d => d.role === 'delegate').map(delegate => {
-                        const delegateStudentCount = students.filter(s => s.delegateId === delegate.id).length;
-                        const percentage = students.length > 0 ? ((delegateStudentCount / students.length) * 100).toFixed(1) : 0;
-                        return (
-                           <div key={delegate.id} className="flex justify-between items-center text-sm text-[var(--color-text-base)]">
-                               <span>{delegate.fullName}</span>
-                               <span className="font-bold text-[var(--color-secondary)]">{delegateStudentCount} طالب ({percentage}%)</span>
-                           </div>
-                        );
-                    })}
-                </div>
-            </details>
-
-            {/* Mobile Card View */}
-            <div className="space-y-4 md:hidden">
-                {sortedAndFilteredStudents.map((student) => (
-                    <div key={student.id} className="bg-[var(--color-background)] p-4 rounded-lg shadow border-r-4 border-[var(--color-primary)]">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <p className="font-bold text-[var(--color-primary)] text-lg">{`${student.firstName} ${student.secondName} ${student.thirdName} ${student.lastName}`}</p>
-                                <p className="text-sm text-[var(--color-text-muted)]">{student.phone}</p>
-                            </div>
-                            <div className="text-sm font-semibold text-[var(--color-text-muted)]">#{student.id}</div>
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-[var(--color-border)] text-sm space-y-2 text-[var(--color-text-base)]">
-                            <p><strong>الدورة:</strong> {student.course}</p>
-                            <p><strong>المندوب:</strong> <span className="font-semibold text-[var(--color-secondary)]">{getDelegateName(student.delegateId)}</span></p>
-                            <p><strong>تاريخ التسجيل:</strong> {student.registrationDate}</p>
-                        </div>
-                        {currentUser?.role === 'admin' && (
-                            <div className="mt-3 pt-2 border-t border-[var(--color-border)] flex justify-end gap-4">
-                                <button onClick={() => handleEditClick(student)} className="text-blue-600 font-bold text-sm">تعديل</button>
-                                <button onClick={() => handleDeleteClick(student.id)} className="text-red-600 font-bold text-sm">حذف</button>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-
             {/* Desktop Table View */}
-            <div className="overflow-x-auto hidden md:block rounded-t-lg border border-[var(--color-border)]">
+            <div className="overflow-x-auto hidden md:block rounded-xl border border-[var(--color-border)] shadow-sm">
                 <table className="w-full text-right border-collapse">
                     <thead className="bg-[var(--color-primary)] text-[var(--color-primary-text)]">
                         <tr>
@@ -588,29 +551,29 @@ const StudentLog: React.FC<{
                             <SortableHeader sortKey="course">الدورة</SortableHeader>
                             <SortableHeader sortKey="delegateName">المندوب</SortableHeader>
                             <SortableHeader sortKey="registrationDate">تاريخ التسجيل</SortableHeader>
-                            {currentUser?.role === 'admin' && <th className="p-3 font-semibold whitespace-nowrap">إجراءات</th>}
+                            {currentUser?.role === 'admin' && <th className="p-3 font-semibold whitespace-nowrap bg-[var(--color-primary)]">إجراءات</th>}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-[var(--color-border)]">
                         {sortedAndFilteredStudents.map((student, index) => (
-                            <tr key={student.id} className={`${index % 2 === 0 ? 'bg-[var(--color-card)]' : 'bg-[var(--color-background)]'} border-b border-[var(--color-border)] text-[var(--color-text-base)] hover:bg-blue-50 transition-colors`}>
-                                <td className="p-3 font-mono">{student.id}</td>
-                                <td className="p-3 font-bold">{`${student.firstName} ${student.secondName} ${student.thirdName} ${student.lastName}`}</td>
-                                <td className="p-3 font-mono">{student.phone}</td>
-                                <td className="p-3">{student.course}</td>
-                                <td className="p-3 font-semibold text-[var(--color-secondary)]">{getDelegateName(student.delegateId)}</td>
-                                <td className="p-3 font-mono text-sm">{student.registrationDate}</td>
+                            <tr key={student.id} className="bg-[var(--color-card)] hover:bg-[var(--color-background)] transition-colors">
+                                <td className="p-4 font-mono text-sm text-gray-500">{student.id}</td>
+                                <td className="p-4 font-bold text-[var(--color-text-base)]">{`${student.firstName} ${student.secondName} ${student.thirdName} ${student.lastName}`}</td>
+                                <td className="p-4 font-mono text-sm">{student.phone}</td>
+                                <td className="p-4"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">{student.course}</span></td>
+                                <td className="p-4 font-medium text-[var(--color-secondary)]">{getDelegateName(student.delegateId)}</td>
+                                <td className="p-4 font-mono text-sm text-gray-500">{student.registrationDate}</td>
                                 {currentUser?.role === 'admin' && (
-                                    <td className="p-3 space-x-2 space-x-reverse whitespace-nowrap">
-                                        <button onClick={() => handleEditClick(student)} className="text-blue-600 hover:underline text-sm font-bold">تعديل</button>
-                                        <button onClick={() => handleDeleteClick(student.id)} className="text-red-600 hover:underline text-sm font-bold">حذف</button>
+                                    <td className="p-4 space-x-2 space-x-reverse whitespace-nowrap">
+                                        <button onClick={() => handleEditClick(student)} className="text-blue-600 hover:bg-blue-50 p-2 rounded-lg transition-colors" title="تعديل">✏️</button>
+                                        <button onClick={() => handleDeleteClick(student.id)} className="text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors" title="حذف">🗑️</button>
                                     </td>
                                 )}
                             </tr>
                         ))}
                     </tbody>
                 </table>
-                 {sortedAndFilteredStudents.length === 0 && <div className="text-center p-8 text-[var(--color-text-muted)] bg-[var(--color-card)]">لا توجد بيانات لعرضها.</div>}
+                 {sortedAndFilteredStudents.length === 0 && <div className="text-center p-12 text-[var(--color-text-muted)]">لا توجد بيانات لعرضها.</div>}
             </div>
         </div>
     );
@@ -630,22 +593,22 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({ delegates,
     const TabButton: React.FC<{ tabName: 'register' | 'log'; label: string; icon: string }> = ({ tabName, label, icon }) => (
         <button
             onClick={() => setActiveTab(tabName)}
-            className={`flex-1 md:flex-initial md:w-auto flex items-center justify-center gap-2 p-3 font-bold rounded-t-lg transition-colors border-t-4 ${
+            className={`flex-1 md:flex-initial px-6 py-3 font-bold rounded-full transition-all duration-200 flex items-center justify-center gap-2 ${
                 activeTab === tabName
-                    ? 'bg-[var(--color-card)] text-[var(--color-primary)] border-[var(--color-primary)]'
-                    : 'bg-[var(--color-background)] text-[var(--color-text-muted)] border-transparent hover:bg-[var(--color-border)]'
+                    ? 'bg-[var(--color-primary)] text-white shadow-md transform scale-105'
+                    : 'bg-[var(--color-card)] text-[var(--color-text-muted)] border border-[var(--color-border)] hover:bg-gray-50'
             }`}
         >
-            <span>{icon}</span>
+            <span className="text-lg">{icon}</span>
             <span>{label}</span>
         </button>
     );
 
     return (
-        <div>
-            <div className="flex flex-col md:flex-row border-b border-[var(--color-border)] mb-6">
+        <div className="space-y-6">
+            <div className="flex justify-center md:justify-start gap-4 p-1 bg-[var(--color-background)] rounded-full w-fit mx-auto md:mx-0">
                 <TabButton tabName="register" label="تسجيل طالب جديد" icon="📝" />
-                <TabButton tabName="log" label="سجل الطلاب المسجلين" icon="📊" />
+                <TabButton tabName="log" label="سجل الطلاب" icon="📊" />
             </div>
 
             {activeTab === 'register' ? (
@@ -659,17 +622,24 @@ export const StudentManagement: React.FC<StudentManagementProps> = ({ delegates,
 
 const InputField: React.FC<{ label: string; id: string; type?: string; className?: string; value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; }> = ({ label, id, type = 'text', className = '', value, onChange }) => (
     <div className={className}>
-        <label htmlFor={id} className="block font-semibold mb-2 text-right text-[var(--color-text-base)]">{label}:</label>
-        <input type={type} id={id} name={id} required className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-background)] text-[var(--color-text-base)]" value={value} onChange={onChange} />
+        <label htmlFor={id} className="block text-sm font-bold mb-2 text-[var(--color-text-muted)]">{label}</label>
+        <input type={type} id={id} name={id} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-background)]" value={value} onChange={onChange} />
     </div>
 );
 
 const SelectField: React.FC<{ id: string; options: { value: string; label: string }[], label?: string; value?: string; onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void; }> = ({ id, options, label, value, onChange }) => (
     <div>
-        {label && <label htmlFor={id} className="block font-semibold mb-2 text-right text-[var(--color-text-base)]">{label}:</label>}
-        <select id={id} name={id} required className="w-full px-4 py-2 border border-[var(--color-border)] rounded-lg focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-background)] text-[var(--color-text-base)]" value={value} onChange={onChange}>
-            <option value="">-- اختر --</option>
-            {options.map((option, index) => <option key={index} value={option.value}>{option.label}</option>)}
-        </select>
+        {label && <label htmlFor={id} className="block text-sm font-bold mb-2 text-[var(--color-text-muted)]">{label}</label>}
+        <div className="relative">
+            <select id={id} name={id} required className="w-full px-4 py-3 border border-[var(--color-border)] rounded-xl focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent transition bg-[var(--color-background)] appearance-none" value={value} onChange={onChange}>
+                <option value="">-- اختر --</option>
+                {options.map((option, index) => <option key={index} value={option.value}>{option.label}</option>)}
+            </select>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+            </div>
+        </div>
     </div>
 );
