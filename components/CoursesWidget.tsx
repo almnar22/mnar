@@ -10,14 +10,17 @@ interface CoursesWidgetProps {
     onNavigate: (view: View) => void;
 }
 
-const ProgressBar: React.FC<{ percentage: number }> = ({ percentage }) => {
-    let colorClass = 'bg-green-500';
-    if (percentage < 30) colorClass = 'bg-red-500';
-    else if (percentage < 70) colorClass = 'bg-orange-500';
+const ProgressBar: React.FC<{ percentage: number; colorClass?: string }> = ({ percentage, colorClass }) => {
+    let finalColor = colorClass;
+    if (!finalColor) {
+        finalColor = 'bg-green-500';
+        if (percentage < 30) finalColor = 'bg-red-500';
+        else if (percentage < 70) finalColor = 'bg-orange-500';
+    }
 
     return (
-        <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
-            <div className={`${colorClass} h-full rounded-full transition-all duration-1000 ease-out`} style={{ width: `${percentage}%` }}></div>
+        <div className="w-full bg-white/50 rounded-full h-2.5 mt-2 overflow-hidden border border-white/30 shadow-inner">
+            <div className={`${finalColor} h-full rounded-full transition-all duration-1000 ease-out shadow-sm`} style={{ width: `${percentage}%` }}></div>
         </div>
     );
 };
@@ -87,7 +90,7 @@ export const CoursesWidget: React.FC<CoursesWidgetProps> = ({ courses, students,
         const totalStudents = activeCourses.reduce((sum, c) => sum + c.current_students, 0);
         
         return (
-            <div className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden">
+            <div className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden animate-fade-in">
                  <div className="flex justify-between items-center p-6 border-b border-[var(--color-border)] bg-[var(--color-background)]/30">
                     <h2 className="text-xl font-bold text-[var(--color-primary)] flex items-center gap-2">
                         🎯 متابعة الدورات - الإدارة
@@ -110,57 +113,65 @@ export const CoursesWidget: React.FC<CoursesWidgetProps> = ({ courses, students,
                             <h3 className="text-lg font-bold text-[var(--color-text-base)] mb-4 flex items-center gap-2">
                                 <span className="bg-green-100 text-green-600 p-1 rounded">🟢</span> جميع الدورات النشطة
                             </h3>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {activeCourses.slice(0, 4).map(course => {
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {activeCourses.map(course => {
                                     const progress = calculateProgress(course);
-                                    const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
                                     const remainingDays = Math.max(0, getDaysRemaining(course.end_date));
 
                                     return (
-                                        <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md hover:border-green-300 group">
-                                            {/* Header */}
-                                            <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center">
-                                                <h4 className="font-bold text-gray-800 flex items-center gap-2">
-                                                    📚 {course.name}
-                                                </h4>
-                                                <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full">نشطة</span>
-                                            </div>
-                                            
-                                            {/* Body */}
-                                            <div className="p-5 space-y-4">
+                                        <div key={course.id} className="bg-gradient-to-br from-emerald-50 via-teal-50 to-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group relative">
+                                             {/* Decorative background shape */}
+                                             <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-200/20 rounded-bl-full z-0 transition-transform group-hover:scale-110"></div>
+
+                                            <div className="p-5 relative z-10">
+                                                {/* Header */}
+                                                <div className="flex justify-between items-start mb-4">
+                                                     <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-2xl">📚</div>
+                                                        <h4 className="font-bold text-gray-800 text-sm leading-tight">{course.name}</h4>
+                                                     </div>
+                                                    <span className="text-[10px] font-bold text-white bg-emerald-500 px-2 py-1 rounded-full shadow-sm">نشطة</span>
+                                                </div>
+                                                
                                                 {/* Progress */}
-                                                <div>
-                                                    <div className="flex justify-between text-xs font-bold text-gray-500 mb-1">
-                                                        <span>التقدم</span>
-                                                        <span className="text-blue-600">{progress}%</span>
+                                                <div className="mb-4 bg-white/60 p-3 rounded-xl border border-emerald-100 backdrop-blur-sm">
+                                                    <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
+                                                        <span className="flex items-center gap-1">⏳ التقدم</span>
+                                                        <span className="text-emerald-700">{progress}%</span>
                                                     </div>
-                                                    <ProgressBar percentage={progress} />
+                                                    <ProgressBar percentage={progress} colorClass="bg-emerald-500" />
                                                 </div>
 
-                                                {/* Details Grid */}
-                                                <div className="grid grid-cols-2 gap-4 text-sm">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-orange-500 bg-orange-50 p-1.5 rounded-lg">{timeIcon}</span>
-                                                        <span className="font-medium text-gray-600">{course.time_slot}</span>
+                                                {/* Details List */}
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex justify-between items-center border-b border-emerald-200/50 pb-2">
+                                                        <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                            <span>🌙</span> الوقت:
+                                                        </span>
+                                                        <span className="font-bold text-gray-800">{course.time_slot}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-purple-500 bg-purple-50 p-1.5 rounded-lg">👥</span>
-                                                        <span className="font-medium text-gray-600">{course.current_students}/{course.max_students}</span>
+                                                    <div className="flex justify-between items-center border-b border-emerald-200/50 pb-2">
+                                                        <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                            <span>👥</span> الطلاب:
+                                                        </span>
+                                                        <span className="font-bold text-gray-800">{course.current_students}/{course.max_students}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-cyan-500 bg-cyan-50 p-1.5 rounded-lg">📅</span>
-                                                        <span className="font-medium text-gray-600">{remainingDays} يوم متبقي</span>
+                                                    <div className="flex justify-between items-center pt-1">
+                                                        <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                            <span>📅</span> المتبقي:
+                                                        </span>
+                                                        <span className={`font-bold ${remainingDays < 5 ? 'text-red-500' : 'text-gray-800'}`}>{remainingDays} يوم</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            
-                                            {/* Footer Button */}
-                                            <div className="p-3 bg-gray-50 border-t border-gray-100 text-center opacity-90 group-hover:opacity-100 transition-opacity">
+
+                                            {/* Footer Action */}
+                                            <div className="px-4 py-3 bg-emerald-100/50 border-t border-emerald-100 text-center opacity-90 group-hover:opacity-100 transition-opacity">
                                                 <button 
                                                     onClick={() => onNavigate('students')}
-                                                    className="w-full py-2 rounded-lg text-sm font-bold text-green-700 hover:bg-green-100 transition-colors"
+                                                    className="text-xs font-bold text-emerald-800 hover:text-emerald-900 flex items-center justify-center gap-1 w-full"
                                                 >
-                                                    تسجيل طالب جديد +
+                                                   <span>📋</span> إدارة الدورة
                                                 </button>
                                             </div>
                                         </div>
@@ -176,46 +187,62 @@ export const CoursesWidget: React.FC<CoursesWidgetProps> = ({ courses, students,
                              <h3 className="text-lg font-bold text-[var(--color-text-base)] mb-4 flex items-center gap-2">
                                 <span className="bg-orange-100 text-orange-600 p-1 rounded">🟡</span> الدورات القادمة
                              </h3>
-                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {upcomingCourses.slice(0, 4).map(course => {
-                                    const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {upcomingCourses.map(course => {
                                     const daysUntil = getDaysUntilStart(course.start_date);
                                     const seatsLeft = course.max_students - course.current_students;
                                     
                                     return (
-                                        <div key={course.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md hover:border-orange-300 group">
-                                            <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center">
-                                                <h4 className="font-bold text-gray-800 flex items-center gap-2">
-                                                    🎯 {course.name}
-                                                </h4>
-                                                 <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">قريباً</span>
-                                            </div>
-                                            
-                                            <div className="p-5 space-y-4">
-                                                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                                    <span className="text-xl">📅</span>
-                                                    <div>
-                                                        <p className="text-xs text-blue-600 font-bold uppercase">موعد الانطلاق</p>
-                                                        <p className="font-bold text-blue-900">بعد {daysUntil} يوم <span className="text-xs font-normal opacity-70">({course.start_date})</span></p>
-                                                    </div>
+                                        <div key={course.id} className="bg-gradient-to-br from-orange-50 via-amber-50 to-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group relative">
+                                            {/* Decorative background shape */}
+                                             <div className="absolute top-0 right-0 w-24 h-24 bg-orange-200/20 rounded-bl-full z-0 transition-transform group-hover:scale-110"></div>
+
+                                            <div className="p-5 relative z-10">
+                                                {/* Header */}
+                                                <div className="flex justify-between items-start mb-4">
+                                                     <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-2xl">🎯</div>
+                                                        <h4 className="font-bold text-gray-800 text-sm leading-tight">{course.name}</h4>
+                                                     </div>
+                                                    <span className="text-[10px] font-bold text-white bg-orange-500 px-2 py-1 rounded-full shadow-sm">قريباً</span>
                                                 </div>
                                                 
-                                                <div className="flex justify-between text-sm text-gray-600 px-2">
-                                                    <span className="flex items-center gap-1">
-                                                        {timeIcon} {course.time_slot}
-                                                    </span>
-                                                    <span className="flex items-center gap-1 font-medium">
-                                                         💺 {seatsLeft} مقعد متبقي
-                                                    </span>
+                                                {/* Countdown Banner */}
+                                                <div className="mb-4 bg-white/60 p-3 rounded-xl border border-orange-100 backdrop-blur-sm text-center">
+                                                    <p className="text-xs text-orange-600 font-bold uppercase mb-1">ينطلق خلال</p>
+                                                    <p className="text-2xl font-black text-orange-800">{daysUntil} <span className="text-sm font-medium">يوم</span></p>
+                                                </div>
+                                                
+                                                {/* Details List */}
+                                                <div className="space-y-2 text-sm">
+                                                    <div className="flex justify-between items-center border-b border-orange-200/50 pb-2">
+                                                        <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                            <span>⏰</span> الوقت:
+                                                        </span>
+                                                        <span className="font-bold text-gray-800">{course.time_slot}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center border-b border-orange-200/50 pb-2">
+                                                        <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                            <span>💺</span> المقاعد:
+                                                        </span>
+                                                        <span className="font-bold text-gray-800">{seatsLeft} متبقي</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center pt-1">
+                                                        <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                            <span>📅</span> التاريخ:
+                                                        </span>
+                                                        <span className="font-bold text-gray-800 text-xs">{course.start_date}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             
-                                            <div className="p-3 bg-gray-50 border-t border-gray-100 text-center opacity-90 group-hover:opacity-100 transition-opacity">
-                                                <button 
+                                            {/* Footer Action */}
+                                            <div className="px-4 py-3 bg-orange-100/50 border-t border-orange-100 text-center opacity-90 group-hover:opacity-100 transition-opacity">
+                                                 <button 
                                                     onClick={() => onNavigate('students')}
-                                                    className="w-full py-2 rounded-lg text-sm font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-colors"
+                                                    className="text-xs font-bold text-orange-800 hover:text-orange-900 flex items-center justify-center gap-1 w-full"
                                                 >
-                                                    حجز مقاعد مبكر
+                                                   <span>📝</span> فتح التسجيل
                                                 </button>
                                             </div>
                                         </div>
@@ -257,7 +284,7 @@ export const CoursesWidget: React.FC<CoursesWidgetProps> = ({ courses, students,
         const coursesNeedingAttention = activeCourses.filter(c => c.enrollment_open && (c.max_students - c.current_students) <= 3);
 
         return (
-            <div className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden">
+            <div className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden animate-fade-in">
                 <div className="flex justify-between items-center p-6 border-b border-[var(--color-border)] bg-[var(--color-background)]/30">
                     <h2 className="text-xl font-bold text-[var(--color-primary)] flex items-center gap-2">
                         🎯 متابعة التسجيلات
@@ -307,11 +334,8 @@ export const CoursesWidget: React.FC<CoursesWidgetProps> = ({ courses, students,
 
     if (!currentUser) return null;
 
-    if (currentUser.role === 'admin') {
-        return renderAdminView();
-    } else if (currentUser.role === 'manager') {
-        return renderManagerView();
-    }
-    // Delegates have their own dashboard
+    if (currentUser.role === 'admin') return renderAdminView();
+    if (currentUser.role === 'manager') return renderManagerView();
+
     return null;
 };

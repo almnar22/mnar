@@ -17,14 +17,17 @@ interface DelegateDashboardProps {
 
 type DelegateView = 'dashboard' | 'students' | 'addStudent' | 'addDelegate' | 'commissions' | 'bankAccount' | 'profile' | 'myNetwork' | 'changePassword';
 
-const ProgressBar: React.FC<{ percentage: number }> = ({ percentage }) => {
-    let colorClass = 'bg-green-500';
-    if (percentage < 30) colorClass = 'bg-red-500';
-    else if (percentage < 70) colorClass = 'bg-orange-500';
+const ProgressBar: React.FC<{ percentage: number; colorClass?: string }> = ({ percentage, colorClass }) => {
+    let finalColor = colorClass;
+    if (!finalColor) {
+        finalColor = 'bg-green-500';
+        if (percentage < 30) finalColor = 'bg-red-500';
+        else if (percentage < 70) finalColor = 'bg-orange-500';
+    }
 
     return (
-        <div className="w-full bg-gray-200 rounded-full h-2 mt-1 overflow-hidden">
-            <div className={`${colorClass} h-full rounded-full transition-all duration-1000 ease-out`} style={{ width: `${percentage}%` }}></div>
+        <div className="w-full bg-white/50 rounded-full h-2.5 mt-2 overflow-hidden border border-white/30 shadow-inner">
+            <div className={`${finalColor} h-full rounded-full transition-all duration-1000 ease-out shadow-sm`} style={{ width: `${percentage}%` }}></div>
         </div>
     );
 };
@@ -54,57 +57,67 @@ const studentStatusStyles: Record<StudentStatus, { classes: string, label: strin
 
 // --- New Components for Grid Layout ---
 
-const StatItem: React.FC<{ label: string, value: number | string, color: string, icon: string }> = ({ label, value, color, icon }) => (
+const StatItem: React.FC<{ label: string, value: number | string, icon: string }> = ({ label, value, icon }) => (
     <div className="flex-1 flex flex-col items-center p-2 relative group cursor-default">
-        <div className={`text-3xl mb-2 opacity-80 group-hover:scale-110 transition-transform`}>{icon}</div>
-        <span className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-1">{label}</span>
-        <span className={`text-2xl font-black ${color}`}>{value}</span>
+        <div className="text-2xl mb-1 group-hover:scale-110 transition-transform drop-shadow-md text-white/90">{icon}</div>
+        <span className="text-[10px] font-bold text-blue-100 uppercase tracking-wider mb-0.5 opacity-80">{label}</span>
+        <span className="text-xl font-black text-white tracking-tight drop-shadow-sm">{value}</span>
     </div>
 );
 
 const QuickStatsBar: React.FC<{ stats: { students: number, commissions: number, network: number, pending: number } }> = ({ stats }) => (
-    <div className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] p-6 mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-center divide-y md:divide-y-0 md:divide-x md:divide-x-reverse divide-[var(--color-border)]">
-            <StatItem label="الطلاب" value={stats.students} color="text-emerald-600" icon="👥" />
-            <StatItem label="العمولات" value={stats.commissions} color="text-amber-600" icon="💰" />
-            <StatItem label="الشبكة" value={stats.network} color="text-purple-600" icon="🌐" />
-            <StatItem label="معلق" value={stats.pending} color="text-blue-600" icon="⏳" />
+    <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 rounded-2xl shadow-xl shadow-blue-900/20 border border-white/10 p-5 mb-6 text-white relative overflow-hidden group">
+        {/* Decorative elements for premium look */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full mix-blend-overlay filter blur-3xl opacity-20 pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-500/10 rounded-full mix-blend-overlay filter blur-3xl opacity-20 pointer-events-none translate-y-1/2 -translate-x-1/2"></div>
+        
+        <div className="flex justify-between items-center divide-x divide-x-reverse divide-white/10 relative z-10">
+            <StatItem label="الطلاب" value={stats.students} icon="👥" />
+            <StatItem label="العمولات" value={stats.commissions} icon="💰" />
+            <StatItem label="الشبكة" value={stats.network} icon="🌐" />
+            <StatItem label="معلق" value={stats.pending} icon="⏳" />
         </div>
     </div>
 );
 
-const MenuGrid: React.FC<{ onItemClick: (view: DelegateView) => void; logout: () => void }> = ({ onItemClick, logout }) => {
-    const menuItems = [
-        { id: 'dashboard' as DelegateView, label: 'لوحة التحكم', icon: '📊', color: 'text-blue-600', bg: 'hover:bg-blue-50 hover:border-blue-200', key: '1' },
-        { id: 'students' as DelegateView, label: 'طلابي', icon: '👥', color: 'text-emerald-600', bg: 'hover:bg-emerald-50 hover:border-emerald-200', key: '2' },
-        { id: 'commissions' as DelegateView, label: 'عمولاتي', icon: '💰', color: 'text-amber-600', bg: 'hover:bg-amber-50 hover:border-amber-200', key: '3' },
-        { id: 'myNetwork' as DelegateView, label: 'شبكتي', icon: '🌐', color: 'text-purple-600', bg: 'hover:bg-purple-50 hover:border-purple-200', key: '4' },
-        { id: 'addStudent' as DelegateView, label: 'تسجيل طالب', icon: '📝', color: 'text-cyan-600', bg: 'hover:bg-cyan-50 hover:border-cyan-200', key: '5' },
-        { id: 'addDelegate' as DelegateView, label: 'إضافة مندوب', icon: '🤝', color: 'text-teal-600', bg: 'hover:bg-teal-50 hover:border-teal-200', key: '6' },
-        { id: 'bankAccount' as DelegateView, label: 'حسابي البنكي', icon: '🏦', color: 'text-indigo-600', bg: 'hover:bg-indigo-50 hover:border-indigo-200', key: '7' },
-        { id: 'profile' as DelegateView, label: 'بياناتي', icon: '👤', color: 'text-pink-600', bg: 'hover:bg-pink-50 hover:border-pink-200', key: '8' },
-        { id: 'changePassword' as DelegateView, label: 'كلمة المرور', icon: '🔐', color: 'text-rose-600', bg: 'hover:bg-rose-50 hover:border-rose-200', key: '9' },
-    ];
+// Reorganized Menu Grid (2 Rows x 4 Columns)
+const DelegateMenu: React.FC<{ onItemClick: (view: DelegateView) => void }> = ({ onItemClick }) => {
+    
+    const MenuButton: React.FC<{ 
+        id: DelegateView, 
+        label: string, 
+        icon: string, 
+        iconBg: string,
+        iconColor: string
+    }> = ({ id, label, icon, iconBg, iconColor }) => (
+        <button 
+            onClick={() => onItemClick(id)}
+            className="flex flex-col items-center justify-center py-3 px-1 bg-[var(--color-card)] rounded-xl shadow-sm border border-[var(--color-border)] hover:shadow-md hover:-translate-y-1 transition-all duration-300 group h-full"
+        >
+            <div className={`w-9 h-9 md:w-10 md:h-10 rounded-full ${iconBg} ${iconColor} flex items-center justify-center text-lg md:text-xl mb-2 shadow-inner group-hover:scale-110 transition-transform`}>
+                {icon}
+            </div>
+            <span className="text-[10px] md:text-xs font-bold text-[var(--color-text-base)] text-center leading-tight">{label}</span>
+        </button>
+    );
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8">
-            {menuItems.map((item) => (
-                <button 
-                    key={item.id}
-                    onClick={() => onItemClick(item.id)}
-                    className={`bg-[var(--color-card)] border border-[var(--color-border)] ${item.bg} transition-all duration-200 p-4 rounded-xl flex flex-col items-center justify-center gap-3 group shadow-sm hover:shadow-md h-32`}
-                >
-                    <span className="text-3xl group-hover:-translate-y-1 transition-transform duration-300">{item.icon}</span>
-                    <span className={`font-bold text-sm ${item.color}`}>{item.label}</span>
-                </button>
-            ))}
-            <button 
-                onClick={logout}
-                className="bg-gray-50 border border-gray-200 hover:bg-red-50 hover:border-red-200 hover:shadow-md transition-all p-4 rounded-xl flex flex-col items-center justify-center gap-3 group h-32"
-            >
-                <span className="text-3xl group-hover:-translate-y-1 transition-transform duration-300">🚪</span>
-                <span className="font-bold text-sm text-gray-600 group-hover:text-red-600">خروج</span>
-            </button>
+        <div className="space-y-3 animate-fade-in-up mb-8">
+            {/* Row 1: Main Actions */}
+            <div className="grid grid-cols-4 gap-2 md:gap-4">
+                 <MenuButton id="addStudent" label="تسجيل طالب" icon="📝" iconBg="bg-green-100" iconColor="text-green-600" />
+                 <MenuButton id="students" label="سجل طلابي" icon="👥" iconBg="bg-blue-100" iconColor="text-blue-600" />
+                 <MenuButton id="commissions" label="عمولاتي" icon="💰" iconBg="bg-amber-100" iconColor="text-amber-600" />
+                 <MenuButton id="myNetwork" label="شبكتي" icon="🌐" iconBg="bg-purple-100" iconColor="text-purple-600" />
+            </div>
+
+            {/* Row 2: Settings & Tools */}
+            <div className="grid grid-cols-4 gap-2 md:gap-4">
+                 <MenuButton id="addDelegate" label="إضافة مندوب" icon="🤝" iconBg="bg-teal-100" iconColor="text-teal-600" />
+                 <MenuButton id="bankAccount" label="الحساب البنكي" icon="🏦" iconBg="bg-indigo-100" iconColor="text-indigo-600" />
+                 <MenuButton id="profile" label="بياناتي" icon="👤" iconBg="bg-gray-100" iconColor="text-gray-600" />
+                 <MenuButton id="changePassword" label="كلمة المرور" icon="🔐" iconBg="bg-rose-100" iconColor="text-rose-600" />
+            </div>
         </div>
     );
 };
@@ -235,10 +248,6 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
     const renderContent = () => {
         switch (activeTab) {
             case 'dashboard':
-                const myStudentsCourses = courses.filter(c => {
-                     return students.some(s => s.delegateId === delegateProfile.id && s.course === c.name);
-                }).slice(0, 3);
-                
                 const stats = {
                     students: delegateProfile.students,
                     commissions: myCommissions.reduce((sum, c) => sum + c.amount, 0),
@@ -251,67 +260,75 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
                         {/* Elegant Stats Bar */}
                         <QuickStatsBar stats={stats} />
 
-                        {/* Main Menu Grid */}
-                        <div>
-                            <h3 className="text-xl font-bold text-[var(--color-primary)] mb-6 flex items-center gap-2 border-b border-[var(--color-border)] pb-2">
-                                🚀 الوصول السريع
-                            </h3>
-                            <MenuGrid onItemClick={setActiveTab} logout={logout} />
-                        </div>
+                        {/* Main Menu Grid - Redesigned (2 Rows x 4 Cols) */}
+                        <DelegateMenu onItemClick={setActiveTab} />
 
-                        {/* Active Courses - Elegant Card Design */}
+                        {/* Active Courses - Redesigned Match Manager Dashboard */}
                         {activeCourses.length > 0 && (
-                            <div>
-                                <h3 className="text-xl font-bold text-green-700 mb-6 flex items-center gap-2">
+                            <div className="mt-8">
+                                <h3 className="text-lg font-bold text-green-700 mb-4 flex items-center gap-2">
                                     <span>🟢</span> الدورات النشطة حالياً
                                 </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {activeCourses.map(course => {
-                                        const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
                                         const progress = calculateProgress(course);
                                         const remainingDays = Math.max(0, getDaysDifference(course.end_date));
                                         
                                         return (
-                                            <div key={course.id} className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden hover:shadow-md transition-all duration-300">
-                                                {/* Title */}
-                                                <div className="p-5 border-b border-[var(--color-border)] bg-gradient-to-r from-green-50/50 to-transparent">
-                                                    <h4 className="font-bold text-lg text-green-900 flex items-center gap-2">
-                                                        📚 {course.name}
-                                                    </h4>
-                                                </div>
-                                                
-                                                <div className="p-6 space-y-5">
+                                            <div key={course.id} className="bg-gradient-to-br from-emerald-50 via-teal-50 to-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group relative">
+                                                 {/* Decorative background shape */}
+                                                 <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-200/20 rounded-bl-full z-0 transition-transform group-hover:scale-110"></div>
+
+                                                <div className="p-5 relative z-10">
+                                                    {/* Header */}
+                                                    <div className="flex justify-between items-start mb-4">
+                                                         <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-2xl">📚</div>
+                                                            <h4 className="font-bold text-gray-800 text-sm leading-tight">{course.name}</h4>
+                                                         </div>
+                                                        <span className="text-[10px] font-bold text-white bg-emerald-500 px-2 py-1 rounded-full shadow-sm">نشطة</span>
+                                                    </div>
+                                                    
                                                     {/* Progress */}
-                                                    <div>
-                                                        <div className="flex justify-between text-xs font-bold text-[var(--color-text-muted)] mb-2">
-                                                            <span>التقدم الدراسي</span>
-                                                            <span className="text-green-600">{progress}%</span>
+                                                    <div className="mb-4 bg-white/60 p-3 rounded-xl border border-emerald-100 backdrop-blur-sm">
+                                                        <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
+                                                            <span className="flex items-center gap-1">⏳ التقدم</span>
+                                                            <span className="text-emerald-700">{progress}%</span>
                                                         </div>
-                                                        <ProgressBar percentage={progress} />
+                                                        <ProgressBar percentage={progress} colorClass="bg-emerald-500" />
                                                     </div>
-                                                    
-                                                    {/* Details Row 1 */}
-                                                    <div className="flex flex-wrap gap-3">
-                                                        <span className="flex items-center gap-1 text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1.5 rounded-lg">
-                                                            {timeIcon} {course.time_slot}
-                                                        </span>
-                                                        <span className="flex items-center gap-1 text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1.5 rounded-lg">
-                                                            👥 {course.current_students}/{course.max_students} طالب
-                                                        </span>
+
+                                                    {/* Details List */}
+                                                    <div className="space-y-2 text-sm">
+                                                        <div className="flex justify-between items-center border-b border-emerald-200/50 pb-2">
+                                                            <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                                <span>🌙</span> الوقت:
+                                                            </span>
+                                                            <span className="font-bold text-gray-800">{course.time_slot}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center border-b border-emerald-200/50 pb-2">
+                                                            <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                                <span>👥</span> الطلاب:
+                                                            </span>
+                                                            <span className="font-bold text-gray-800">{course.current_students}/{course.max_students}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center pt-1">
+                                                            <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                                <span>📅</span> المتبقي:
+                                                            </span>
+                                                            <span className={`font-bold ${remainingDays < 5 ? 'text-red-500' : 'text-gray-800'}`}>{remainingDays} يوم</span>
+                                                        </div>
                                                     </div>
-                                                    
-                                                    {/* Footer Info */}
-                                                    <div className="flex justify-between items-center text-sm pt-2">
-                                                        <span className="text-[var(--color-text-muted)] font-medium flex items-center gap-1 text-xs">
-                                                            📅 متبقي {remainingDays} يوم
-                                                        </span>
-                                                        <button 
-                                                            onClick={() => setActiveTab('addStudent')} 
-                                                            className="text-xs font-bold text-white bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition-colors shadow-sm"
-                                                        >
-                                                            سجل طالب الآن
-                                                        </button>
-                                                    </div>
+                                                </div>
+
+                                                {/* Footer Action */}
+                                                <div className="px-4 py-3 bg-emerald-100/50 border-t border-emerald-100 text-center opacity-90 group-hover:opacity-100 transition-opacity">
+                                                    <button 
+                                                        onClick={() => setActiveTab('students')}
+                                                        className="text-xs font-bold text-emerald-800 hover:text-emerald-900 flex items-center justify-center gap-1 w-full"
+                                                    >
+                                                       <span>📋</span> متابعة الطلاب
+                                                    </button>
                                                 </div>
                                             </div>
                                         );
@@ -320,86 +337,61 @@ export const DelegateDashboard: React.FC<DelegateDashboardProps> = ({ delegates,
                             </div>
                         )}
 
-                        {/* Upcoming Courses - Elegant Card Design */}
-                        {upcomingCourses.length > 0 && (
-                            <div>
-                                <h3 className="text-xl font-bold text-orange-700 mb-6 flex items-center gap-2">
-                                    <span>🟡</span> الدورات القادمة
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {upcomingCourses.map(course => {
-                                        const timeIcon = course.time_slot?.includes('صباحي') ? "☀️" : "🌙";
-                                        const daysUntil = getDaysDifference(course.start_date);
-                                        const statusColor = course.enrollment_open ? "text-green-700 bg-green-100" : "text-red-700 bg-red-100";
-                                        const statusIcon = course.enrollment_open ? "🔓" : "🔒";
-                                        
-                                        return (
-                                             <div key={course.id} className="bg-[var(--color-card)] rounded-2xl shadow-sm border border-[var(--color-border)] overflow-hidden hover:shadow-md transition-all duration-300">
-                                                <div className="p-5 border-b border-[var(--color-border)] bg-gradient-to-r from-orange-50/50 to-transparent flex justify-between items-center">
-                                                    <h4 className="font-bold text-lg text-orange-900 flex items-center gap-2">
-                                                        🎯 {course.name}
-                                                    </h4>
-                                                    <span className="text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">قريباً</span>
-                                                </div>
-                                                
-                                                <div className="p-6 space-y-5">
-                                                    <div className="flex items-center gap-3 p-3 bg-[var(--color-background)] rounded-xl border border-[var(--color-border)]">
-                                                        <span className="text-2xl">🗓️</span>
-                                                        <div>
-                                                            <p className="text-xs text-[var(--color-text-muted)] font-bold uppercase">تاريخ البدء</p>
-                                                            <p className="text-sm font-bold text-[var(--color-text-base)]">بعد {daysUntil} يوم <span className="font-normal opacity-60">({course.start_date})</span></p>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="flex justify-between items-center pt-2">
-                                                        <span className={`font-bold flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs ${statusColor}`}>
-                                                            {statusIcon} {course.enrollment_open ? 'التسجيل مفتوح' : 'مغلق'}
-                                                        </span>
-                                                        
-                                                        {course.enrollment_open ? (
-                                                            <button 
-                                                                onClick={() => setActiveTab('addStudent')} 
-                                                                className="text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-4 py-2 rounded-lg transition-colors shadow-sm"
-                                                            >
-                                                                احجز مقعد
-                                                            </button>
-                                                        ) : (
-                                                             <button disabled className="text-xs font-bold text-gray-400 bg-gray-100 px-4 py-2 rounded-lg cursor-not-allowed">
-                                                                غير متاح
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                             </div>
-                                        );
-                                    })}
-                                </div>
-                             </div>
-                        )}
-
-                        {/* Available Courses - Elegant Card Design */}
+                        {/* Available Courses - Redesigned Match Manager Dashboard */}
                          {availableCourses.length > 0 && (
-                            <div>
-                                <h3 className="text-xl font-bold text-blue-700 mb-6 flex items-center gap-2">
+                            <div className="mt-8">
+                                <h3 className="text-lg font-bold text-orange-700 mb-4 flex items-center gap-2">
                                     <span>🚀</span> فرص تسجيل متاحة
                                 </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                    {availableCourses.slice(0, 4).map(course => {
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    {availableCourses.slice(0, 8).map(course => {
                                         const seatsLeft = course.max_students - course.current_students;
                                         return (
-                                             <div key={course.id} className="bg-[var(--color-card)] rounded-xl shadow-sm border border-[var(--color-border)] p-4 hover:border-blue-300 transition-colors cursor-pointer group" onClick={() => setActiveTab('addStudent')}>
-                                                <h4 className="font-bold text-gray-800 mb-2 group-hover:text-blue-600 transition-colors">{course.name}</h4>
-                                                <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
-                                                    <span>{course.time_slot}</span>
-                                                    <span>📅 {course.start_date}</span>
+                                             <div key={course.id} className="bg-gradient-to-br from-orange-50 via-amber-50 to-white rounded-2xl shadow-sm border border-orange-100 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group relative">
+                                                {/* Decorative background shape */}
+                                                 <div className="absolute top-0 right-0 w-24 h-24 bg-orange-200/20 rounded-bl-full z-0 transition-transform group-hover:scale-110"></div>
+
+                                                <div className="p-5 relative z-10">
+                                                    {/* Header */}
+                                                    <div className="flex justify-between items-start mb-4">
+                                                         <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-2xl">🎯</div>
+                                                            <h4 className="font-bold text-gray-800 text-sm leading-tight">{course.name}</h4>
+                                                         </div>
+                                                        <span className="text-[10px] font-bold text-white bg-orange-500 px-2 py-1 rounded-full shadow-sm">متاح</span>
+                                                    </div>
+                                                    
+                                                    {/* Seats Banner */}
+                                                    <div className="mb-4 bg-white/60 p-3 rounded-xl border border-orange-100 backdrop-blur-sm text-center">
+                                                        <p className="text-xs text-orange-600 font-bold uppercase mb-1">المقاعد المتاحة</p>
+                                                        <p className="text-2xl font-black text-orange-800">{seatsLeft} <span className="text-sm font-medium">مقعد</span></p>
+                                                    </div>
+                                                    
+                                                    {/* Details List */}
+                                                    <div className="space-y-2 text-sm">
+                                                        <div className="flex justify-between items-center border-b border-orange-200/50 pb-2">
+                                                            <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                                <span>⏰</span> الوقت:
+                                                            </span>
+                                                            <span className="font-bold text-gray-800">{course.time_slot}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center pt-1">
+                                                            <span className="text-gray-600 text-xs font-bold flex items-center gap-2">
+                                                                <span>📅</span> التاريخ:
+                                                            </span>
+                                                            <span className="font-bold text-gray-800 text-xs">{course.start_date}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
-                                                        💺 {seatsLeft} مقعد
-                                                    </span>
-                                                    <span className="text-blue-500 text-sm group-hover:translate-x-[-2px] transition-transform">
-                                                        سجل ⬅
-                                                    </span>
+                                                
+                                                {/* Footer Action */}
+                                                <div className="px-4 py-3 bg-orange-100/50 border-t border-orange-100 text-center opacity-90 group-hover:opacity-100 transition-opacity">
+                                                     <button 
+                                                        onClick={() => setActiveTab('addStudent')}
+                                                        className="text-xs font-bold text-orange-800 hover:text-orange-900 flex items-center justify-center gap-1 w-full"
+                                                    >
+                                                       <span>📝</span> تسجيل طالب
+                                                    </button>
                                                 </div>
                                              </div>
                                         );
