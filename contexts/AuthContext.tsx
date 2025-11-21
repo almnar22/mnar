@@ -2,35 +2,16 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import type { User, Role, Delegate, BankAccount, ActivityLog } from '../types';
 
-// New, comprehensive mock data for the final system
+// Clean system: Only one default admin user
 const initialUsers: User[] = [
-    // Admins & Managers
-    { id: 1, fullName: 'عبدالله صالح الحمد الحداد', username: 'admin', password: '123456', role: 'admin', isActive: true, createdDate: '2024-01-01' },
-    { id: 2, fullName: 'محمد صالح الحداد', username: 'manager', password: '123456', role: 'manager', isActive: true, createdDate: '2024-01-01' },
-    // Delegates
-    { id: 3, fullName: 'عبدالملك صالح احمد الحداد', username: 'abdulmalek', password: '123456', role: 'delegate', isActive: true, createdDate: '2024-01-10' },
-    { id: 4, fullName: 'هدية عوضة', username: 'hadiya', password: '123456', role: 'delegate', isActive: true, createdDate: '2024-02-15', referredById: 3 }, // Referred by abdulmalek
-    { id: 5, fullName: 'محمد الحجري', username: 'mhajri', password: '123456', role: 'delegate', isActive: true, createdDate: '2024-02-20', referredById: 3 }, // Referred by abdulmalek
-    { id: 6, fullName: 'عمار الحداد', username: 'ammar', password: '123456', role: 'delegate', isActive: true, createdDate: '2024-03-05', referredById: 4 }, // Referred by hadiya
-    { id: 7, fullName: 'نجلاء نصار', username: 'najla', password: '123456', role: 'delegate', isActive: true, createdDate: '2024-03-10', referredById: 5 }, // Referred by mhajri
+    { id: 1, fullName: 'مدير النظام', username: 'admin', password: '123456', role: 'admin', isActive: true, createdDate: new Date().toISOString().split('T')[0] }
 ];
 
 const initialDelegates: Delegate[] = [
-    // FIX: Added role to initial delegate data to match the updated Delegate type.
-    { id: 1, userId: 1, fullName: 'عبدالله صالح الحمد الحداد', phone: '0501111111', students: 0, isActive: true, email: 'admin@example.com', role: 'admin' },
-    { id: 2, userId: 2, fullName: 'محمد صالح الحداد', phone: '0502222222', students: 0, isActive: true, email: 'manager@example.com', role: 'manager' },
-    { id: 3, userId: 3, fullName: 'عبدالملك صالح احمد الحداد', phone: '0503333333', students: 3, isActive: true, email: 'abdulmalek@example.com', role: 'delegate' },
-    { id: 4, userId: 4, fullName: 'هدية عوضة', phone: '0504444444', students: 2, isActive: true, email: 'hadiya@example.com', role: 'delegate' },
-    { id: 5, userId: 5, fullName: 'محمد الحجري', phone: '0505555555', students: 2, isActive: true, email: 'mhajri@example.com', role: 'delegate' },
-    { id: 6, userId: 6, fullName: 'عمار الحداد', phone: '0506666666', students: 1, isActive: true, email: 'ammar@example.com', role: 'delegate' },
-    { id: 7, userId: 7, fullName: 'نجلاء نصار', phone: '0507777777', students: 2, isActive: true, email: 'najla@example.com', role: 'delegate' },
+    { id: 1, userId: 1, fullName: 'مدير النظام', phone: '0000000000', students: 0, isActive: true, email: 'admin@system.com', role: 'admin' }
 ];
 
-const initialBankAccounts: BankAccount[] = [
-    { id: 1, delegateId: 3, bankName: 'بنك الراجحي', accountHolder: 'ABDULMALEK SALEH A ALHADDAD', bankAccount: 'SA0380000000608010167519' },
-    { id: 2, delegateId: 4, bankName: 'البنك الأهلي', accountHolder: 'HADIYA AWADH', bankAccount: 'SA0310000000123456789012' },
-    { id: 3, delegateId: 5, bankName: 'بنك الرياض', accountHolder: 'MOHAMMED ALHAJRI', bankAccount: 'SA9320000001234567891234' },
-];
+const initialBankAccounts: BankAccount[] = [];
 
 
 interface AuthContextType {
