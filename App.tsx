@@ -10,81 +10,74 @@ import { Reports } from './components/Reports';
 import { Settings } from './components/Settings';
 import { ActivityLogs } from './components/ActivityLogs';
 import { CourseManagement } from './components/CourseManagement';
-import { NotificationsPage } from './components/NotificationsPage'; // Import Notification Page
+import { NotificationsPage } from './components/NotificationsPage'; 
 import type { View, Student, Commission, Delegate, BackupData, CourseObject } from './types';
-import { Course, Schedule, CommissionStatus, StudentStatus } from './types';
+import { CommissionStatus, StudentStatus } from './types';
 import { useAuth } from './contexts/AuthContext';
-import { useNotification } from './contexts/NotificationContext'; // Import hook
+import { useNotification } from './contexts/NotificationContext';
 import { Login } from './components/Login';
 import { DelegateDashboard } from './components/DelegateDashboard';
-
-// Empty initial data for a clean system
-const initialStudentsData: Student[] = [];
-const initialCommissions: Commission[] = [];
-const initialCourses: CourseObject[] = [];
-
+import { api } from './services/api'; // Import API Service
 
 const App: React.FC = () => {
   const { currentUser, delegates, incrementStudentCount, decrementStudentCount, logActivity, users, bankAccounts, restoreData } = useAuth();
-  const { addNotification } = useNotification(); // Use Notification Context
+  const { addNotification } = useNotification();
 
   const [activeView, setActiveView] = useState<View>('dashboard');
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Initialize from localStorage with fallback to initial data
-  const [students, setStudents] = useState<Student[]>(() => {
-      const saved = localStorage.getItem('app_students');
-      return saved ? JSON.parse(saved) : initialStudentsData;
-  });
-  
-  const [commissions, setCommissions] = useState<Commission[]>(() => {
-      const saved = localStorage.getItem('app_commissions');
-      return saved ? JSON.parse(saved) : initialCommissions;
-  });
-  
-  const [courses, setCourses] = useState<CourseObject[]>(() => {
-      const saved = localStorage.getItem('app_courses');
-      return saved ? JSON.parse(saved) : initialCourses;
-  });
+  const [students, setStudents] = useState<Student[]>([]);
+  const [commissions, setCommissions] = useState<Commission[]>([]);
+  const [courses, setCourses] = useState<CourseObject[]>([]);
   
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Persistence Effects
+  // Initial Data Load from API
   useEffect(() => {
-      localStorage.setItem('app_students', JSON.stringify(students));
-  }, [students]);
+      const loadData = async () => {
+          setIsLoading(true);
+          try {
+              const [loadedStudents, loadedCommissions, loadedCourses] = await Promise.all([
+                  api.students.getAll(),
+                  api.commissions.getAll(),
+                  api.courses.getAll()
+              ]);
+              setStudents(loadedStudents);
+              setCommissions(loadedCommissions);
+              setCourses(loadedCourses);
+          } catch (error) {
+              console.error("Failed to load data", error);
+              addNotification('خطأ', 'فشل في تحميل البيانات من الخادم', 'danger');
+          } finally {
+              setIsLoading(false);
+          }
+      };
+      
+      // Only load if logged in
+      if (currentUser) {
+          loadData();
+      }
+  }, [currentUser]);
 
-  useEffect(() => {
-      localStorage.setItem('app_commissions', JSON.stringify(commissions));
-  }, [commissions]);
-
-  useEffect(() => {
-      localStorage.setItem('app_courses', JSON.stringify(courses));
-  }, [courses]);
 
   // --- Auto Notifications Engine ---
   useEffect(() => {
     if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager')) {
-        // Check for Pending Commissions
         const pendingCount = commissions.filter(c => c.status === CommissionStatus.Pending).length;
         if (pendingCount > 0) {
-             // To avoid spamming on every render, in a real app we'd check if notification exists. 
-             // Here we rely on the user dismissing it or local storage check.
-             // For simplicity in this prototype, we just add it if it's not there (this logic would be in Context usually)
-             // Let's just add a generic welcome notification if none exist
              const welcomeKey = 'welcome_notification_sent';
              if (!sessionStorage.getItem(welcomeKey)) {
                  addNotification(
                     '💰 تنبيه العمولات',
                     `يوجد ${pendingCount} عمولة معلقة تحتاج إلى مراجعة.`,
                     'warning',
-                    null, // Broadcast
+                    null,
                     'commissions'
                  );
                  sessionStorage.setItem(welcomeKey, 'true');
              }
         }
 
-        // Check for Courses ending soon
         courses.forEach(course => {
             if (course.status === 'active') {
                 const end = new Date(course.end_date);
@@ -93,7 +86,7 @@ const App: React.FC = () => {
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 
                 if (diffDays <= 7 && diffDays > 0) {
-                    const key = `course_expiry_${course.id}_${now.getDate()}`; // Unique per day
+                    const key = `course_expiry_${course.id}_${now.getDate()}`; 
                     if (!sessionStorage.getItem(key)) {
                         addNotification(
                             '⏳ دورة تنتهي قريباً',
@@ -109,148 +102,187 @@ const App: React.FC = () => {
             }
         });
     }
-  }, [currentUser, commissions, courses]); // Logic runs when data changes
+  }, [currentUser, commissions, courses]);
 
-  const handleAddStudent = (studentData: Omit<Student, 'id' | 'registrationDate'>) => {
-    const newStudent: Student = {
-      id: students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1,
-      ...studentData,
-      registrationDate: new Date().toISOString().split('T')[0], // YYYY-MM-DD
-    };
-    setStudents(prevStudents => [newStudent, ...prevStudents]);
-    incrementStudentCount(newStudent.delegateId);
-    
-    // Automatically create a commission log
-    const newCommission: Commission = {
-        id: commissions.length > 0 ? Math.max(...commissions.map(c => c.id)) + 1 : 1,
-        studentId: newStudent.id,
-        delegateId: newStudent.delegateId,
-        studentName: `${newStudent.firstName} ${newStudent.secondName} ${newStudent.thirdName} ${newStudent.lastName}`,
-        course: newStudent.course,
-        amount: 500, // Updated commission amount
-        status: CommissionStatus.Pending,
-        studentStatus: StudentStatus.Registered,
-        createdDate: newStudent.registrationDate,
-    };
-    setCommissions(prev => [newCommission, ...prev]);
-    
-    logActivity('add', 'students', `${newStudent.firstName} ${newStudent.lastName}`);
-    
-    // Notification for Admin
-    addNotification(
-        '🎉 طالب جديد',
-        `تم تسجيل الطالب: ${newStudent.firstName} ${newStudent.lastName} بنجاح.`,
-        'success',
-        null, // Broadcast to admins
-        'students',
-        newStudent.id
-    );
+  const handleAddStudent = async (studentData: Omit<Student, 'id' | 'registrationDate'>) => {
+    try {
+        // 1. Create Student via API
+        const newStudent = await api.students.create({
+            ...studentData,
+            id: 0, // ID handled by backend/service
+            registrationDate: new Date().toISOString().split('T')[0]
+        });
+        
+        setStudents(prev => [newStudent, ...prev]);
+        incrementStudentCount(newStudent.delegateId);
+        
+        // 2. Create Commission via API
+        const commissionData: Commission = {
+            id: 0,
+            studentId: newStudent.id,
+            delegateId: newStudent.delegateId,
+            studentName: `${newStudent.firstName} ${newStudent.secondName} ${newStudent.thirdName} ${newStudent.lastName}`,
+            course: newStudent.course,
+            amount: 500,
+            status: CommissionStatus.Pending,
+            studentStatus: StudentStatus.Registered,
+            createdDate: newStudent.registrationDate,
+        };
+        
+        const newCommission = await api.commissions.create(commissionData);
+        setCommissions(prev => [newCommission, ...prev]);
+        
+        logActivity('add', 'students', `${newStudent.firstName} ${newStudent.lastName}`);
+        
+        addNotification(
+            '🎉 طالب جديد',
+            `تم تسجيل الطالب: ${newStudent.firstName} ${newStudent.lastName} بنجاح.`,
+            'success',
+            null,
+            'students',
+            newStudent.id
+        );
+    } catch (e) {
+        console.error(e);
+        addNotification('خطأ', 'فشل في تسجيل الطالب', 'danger');
+    }
   };
 
-  const handleEditStudent = (studentId: number, updatedData: Partial<Omit<Student, 'id'>>) => {
-      const oldData = students.find(s => s.id === studentId);
-      setStudents(prev => prev.map(s => s.id === studentId ? {...s, ...updatedData} : s));
-      if(oldData) logActivity('edit', 'students', `${oldData.firstName} ${oldData.lastName} (ID: ${studentId})`);
-  };
-  
-  const handleDeleteStudent = (studentId: number) => {
-      const studentToDelete = students.find(s => s.id === studentId);
-      if(studentToDelete){
-          setStudents(prev => prev.filter(s => s.id !== studentId));
-          setCommissions(prev => prev.filter(c => c.studentId !== studentId));
-          decrementStudentCount(studentToDelete.delegateId);
-          logActivity('delete', 'students', `${studentToDelete.firstName} ${studentToDelete.lastName} (ID: ${studentId})`);
-          
-          addNotification(
-            '🗑️ حذف طالب',
-            `تم حذف الطالب ${studentToDelete.firstName} ${studentToDelete.lastName} من النظام.`,
-            'danger'
-          );
+  const handleEditStudent = async (studentId: number, updatedData: Partial<Omit<Student, 'id'>>) => {
+      try {
+          await api.students.update(studentId, updatedData);
+          const oldData = students.find(s => s.id === studentId);
+          setStudents(prev => prev.map(s => s.id === studentId ? {...s, ...updatedData} : s));
+          if(oldData) logActivity('edit', 'students', `${oldData.firstName} ${oldData.lastName} (ID: ${studentId})`);
+      } catch (e) {
+          addNotification('خطأ', 'فشل في تحديث بيانات الطالب', 'danger');
       }
   };
   
-  const updateCommissionStatus = (commissionId: number, status: CommissionStatus) => {
-      setCommissions(prev => prev.map(c => {
-          if (c.id === commissionId) {
-              const now = new Date().toISOString().split('T')[0];
-              
-              // Notify the delegate if commission is confirmed/paid
-              if (status === CommissionStatus.Paid || status === CommissionStatus.Confirmed) {
-                   // Assuming we can find the delegate's user ID from the delegate object.
-                   // In current types, Delegate has userId.
-                   const delegate = delegates.find(d => d.id === c.delegateId);
-                   if (delegate) {
-                       addNotification(
-                           status === CommissionStatus.Paid ? '💰 تم دفع العمولة' : '✅ تم تأكيد العمولة',
-                           `تم تحديث حالة عمولتك للطالب ${c.studentName} إلى ${status}.`,
-                           'success',
-                           delegate.userId,
-                           'commissions'
-                       );
-                   }
-              }
+  const handleDeleteStudent = async (studentId: number) => {
+      try {
+          const studentToDelete = students.find(s => s.id === studentId);
+          if(studentToDelete){
+              await api.students.delete(studentId);
+              await api.commissions.deleteByStudentId(studentId);
 
-              return {
-                  ...c,
-                  status,
-                  confirmedDate: status === CommissionStatus.Confirmed ? now : c.confirmedDate,
-                  paidDate: status === CommissionStatus.Paid ? now : c.paidDate,
-              };
+              setStudents(prev => prev.filter(s => s.id !== studentId));
+              setCommissions(prev => prev.filter(c => c.studentId !== studentId));
+              decrementStudentCount(studentToDelete.delegateId);
+              logActivity('delete', 'students', `${studentToDelete.firstName} ${studentToDelete.lastName} (ID: ${studentId})`);
+              
+              addNotification(
+                '🗑️ حذف طالب',
+                `تم حذف الطالب ${studentToDelete.firstName} ${studentToDelete.lastName} من النظام.`,
+                'danger'
+              );
           }
-          return c;
-      }));
-      logActivity('edit', 'commissions', `تحديث حالة العمولة (ID: ${commissionId}) إلى ${status}`);
+      } catch (e) {
+          addNotification('خطأ', 'فشل في حذف الطالب', 'danger');
+      }
+  };
+  
+  const updateCommissionStatus = async (commissionId: number, status: CommissionStatus) => {
+      try {
+          await api.commissions.update(commissionId, { status, paidDate: status === CommissionStatus.Paid ? new Date().toISOString().split('T')[0] : undefined });
+          
+          setCommissions(prev => prev.map(c => {
+              if (c.id === commissionId) {
+                  const now = new Date().toISOString().split('T')[0];
+                  if (status === CommissionStatus.Paid || status === CommissionStatus.Confirmed) {
+                       const delegate = delegates.find(d => d.id === c.delegateId);
+                       if (delegate) {
+                           addNotification(
+                               status === CommissionStatus.Paid ? '💰 تم دفع العمولة' : '✅ تم تأكيد العمولة',
+                               `تم تحديث حالة عمولتك للطالب ${c.studentName} إلى ${status}.`,
+                               'success',
+                               delegate.userId,
+                               'commissions'
+                           );
+                       }
+                  }
+                  return {
+                      ...c,
+                      status,
+                      confirmedDate: status === CommissionStatus.Confirmed ? now : c.confirmedDate,
+                      paidDate: status === CommissionStatus.Paid ? now : c.paidDate,
+                  };
+              }
+              return c;
+          }));
+          logActivity('edit', 'commissions', `تحديث حالة العمولة (ID: ${commissionId}) إلى ${status}`);
+      } catch (e) {
+          addNotification('خطأ', 'فشل في تحديث العمولة', 'danger');
+      }
   };
 
-  const updateStudentStatus = (commissionId: number, studentStatus: StudentStatus) => {
-      setCommissions(prev => prev.map(c => {
-          if (c.id === commissionId) {
-              const now = new Date().toISOString().split('T')[0];
-              let newCommissionStatus = c.status;
-              let newConfirmedDate = c.confirmedDate;
+  const updateStudentStatus = async (commissionId: number, studentStatus: StudentStatus) => {
+      try {
+          const commission = commissions.find(c => c.id === commissionId);
+          if(!commission) return;
 
-              // Auto-update commission status based on student status
-              if (studentStatus === StudentStatus.Completed && c.status !== CommissionStatus.Paid) {
-                  newCommissionStatus = CommissionStatus.Confirmed;
-                  newConfirmedDate = c.confirmedDate || now;
-              } else if (studentStatus === StudentStatus.Dropped) {
-                  newCommissionStatus = CommissionStatus.Cancelled;
-              }
+          const now = new Date().toISOString().split('T')[0];
+          let newCommissionStatus = commission.status;
+          let newConfirmedDate = commission.confirmedDate;
 
-              return {
-                  ...c,
-                  studentStatus,
-                  status: newCommissionStatus,
-                  confirmedDate: newConfirmedDate,
-              };
+          if (studentStatus === StudentStatus.Completed && commission.status !== CommissionStatus.Paid) {
+              newCommissionStatus = CommissionStatus.Confirmed;
+              newConfirmedDate = commission.confirmedDate || now;
+          } else if (studentStatus === StudentStatus.Dropped) {
+              newCommissionStatus = CommissionStatus.Cancelled;
           }
-          return c;
-      }));
-      logActivity('edit', 'commissions', `تحديث حالة الطالب للعمولة (ID: ${commissionId}) إلى ${studentStatus}`);
+
+          await api.commissions.update(commissionId, { studentStatus, status: newCommissionStatus, confirmedDate: newConfirmedDate });
+
+          setCommissions(prev => prev.map(c => {
+              if (c.id === commissionId) {
+                  return {
+                      ...c,
+                      studentStatus,
+                      status: newCommissionStatus,
+                      confirmedDate: newConfirmedDate,
+                  };
+              }
+              return c;
+          }));
+          logActivity('edit', 'commissions', `تحديث حالة الطالب للعمولة (ID: ${commissionId}) إلى ${studentStatus}`);
+      } catch (e) {
+           addNotification('خطأ', 'فشل في تحديث حالة الطالب', 'danger');
+      }
   };
 
   // --- Course Management Handlers ---
-  const handleAddCourse = (courseData: Omit<CourseObject, 'id' | 'current_students'>) => {
-      const newCourse: CourseObject = {
-          id: courses.length > 0 ? Math.max(...courses.map(c => c.id)) + 1 : 1,
-          ...courseData,
-          current_students: 0
-      };
-      setCourses(prev => [...prev, newCourse]);
-      logActivity('add', 'courses', `إضافة دورة جديدة: ${newCourse.name}`);
-      addNotification('📚 دورة جديدة', `تم إضافة دورة جديدة: ${newCourse.name}`, 'info');
+  const handleAddCourse = async (courseData: Omit<CourseObject, 'id' | 'current_students'>) => {
+      try {
+          const newCourse = await api.courses.create({ ...courseData, id: 0, current_students: 0 });
+          setCourses(prev => [...prev, newCourse]);
+          logActivity('add', 'courses', `إضافة دورة جديدة: ${newCourse.name}`);
+          addNotification('📚 دورة جديدة', `تم إضافة دورة جديدة: ${newCourse.name}`, 'info');
+      } catch (e) {
+          addNotification('خطأ', 'فشل في إضافة الدورة', 'danger');
+      }
   };
 
-  const handleUpdateCourse = (id: number, courseData: Partial<CourseObject>) => {
-      setCourses(prev => prev.map(c => c.id === id ? { ...c, ...courseData } : c));
-      logActivity('edit', 'courses', `تحديث دورة: ${id}`);
+  const handleUpdateCourse = async (id: number, courseData: Partial<CourseObject>) => {
+      try {
+          await api.courses.update(id, courseData);
+          setCourses(prev => prev.map(c => c.id === id ? { ...c, ...courseData } : c));
+          logActivity('edit', 'courses', `تحديث دورة: ${id}`);
+      } catch(e) {
+          addNotification('خطأ', 'فشل في تحديث الدورة', 'danger');
+      }
   };
 
-  const handleDeleteCourse = (id: number) => {
-      const courseToDelete = courses.find(c => c.id === id);
-      if (courseToDelete) {
-          setCourses(prev => prev.filter(c => c.id !== id));
-          logActivity('delete', 'courses', `حذف دورة: ${courseToDelete.name}`);
+  const handleDeleteCourse = async (id: number) => {
+      try {
+          const courseToDelete = courses.find(c => c.id === id);
+          if (courseToDelete) {
+              await api.courses.delete(id);
+              setCourses(prev => prev.filter(c => c.id !== id));
+              logActivity('delete', 'courses', `حذف دورة: ${courseToDelete.name}`);
+          }
+      } catch(e) {
+           addNotification('خطأ', 'فشل في حذف الدورة', 'danger');
       }
   };
 
@@ -279,7 +311,10 @@ const App: React.FC = () => {
   };
 
   const handleRestoreBackup = (data: any) => {
-      if (data.students) setStudents(data.students);
+      if (data.students) {
+          setStudents(data.students);
+          data.students.forEach((s: any) => api.students.create(s)); // Sync to API (naive approach)
+      }
       if (data.commissions) setCommissions(data.commissions);
       if (data.courses) setCourses(data.courses);
       
@@ -323,6 +358,10 @@ const App: React.FC = () => {
   }
 
   const renderView = () => {
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary)]"></div></div>;
+    }
+
     switch (activeView) {
       case 'dashboard':
         return <Dashboard stats={dashboardStats} courses={courses} students={students} commissions={commissions} onNavigate={setActiveView} />;
@@ -363,7 +402,7 @@ const App: React.FC = () => {
           activeView={activeView}
           setActiveView={(view) => {
             setActiveView(view);
-            setIsMenuOpen(false); // Close menu on mobile after navigation
+            setIsMenuOpen(false); 
           }}
           isOpen={isMenuOpen}
         />

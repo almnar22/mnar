@@ -1,18 +1,7 @@
 
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import type { User, Role, Delegate, BankAccount, ActivityLog } from '../types';
-
-// Clean system: Only one default admin user
-const initialUsers: User[] = [
-    { id: 1, fullName: 'مدير النظام', username: 'admin', password: '123456', role: 'admin', isActive: true, createdDate: new Date().toISOString().split('T')[0] }
-];
-
-const initialDelegates: Delegate[] = [
-    { id: 1, userId: 1, fullName: 'مدير النظام', phone: '0000000000', students: 0, isActive: true, email: 'admin@system.com', role: 'admin' }
-];
-
-const initialBankAccounts: BankAccount[] = [];
-
+import { api } from '../services/api';
 
 interface AuthContextType {
     currentUser: User | null;
@@ -35,54 +24,49 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    // Initialize from localStorage with fallback to initial data
-    const [users, setUsers] = useState<User[]>(() => {
-        const saved = localStorage.getItem('app_users');
-        return saved ? JSON.parse(saved) : initialUsers;
-    });
-    
-    const [delegates, setDelegates] = useState<Delegate[]>(() => {
-        const saved = localStorage.getItem('app_delegates');
-        return saved ? JSON.parse(saved) : initialDelegates;
-    });
-    
-    const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(() => {
-        const saved = localStorage.getItem('app_bankAccounts');
-        return saved ? JSON.parse(saved) : initialBankAccounts;
-    });
-    
-    const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
-        const saved = localStorage.getItem('app_activityLogs');
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [users, setUsers] = useState<User[]>([]);
+    const [delegates, setDelegates] = useState<Delegate[]>([]);
+    const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+    const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
 
     const [currentUser, setCurrentUser] = useState<User | null>(() => {
         try {
             const storedUser = window.localStorage.getItem('current-user');
             return storedUser ? JSON.parse(storedUser) : null;
         } catch (error) {
-            console.error("Failed to parse user from localStorage", error);
             return null;
         }
     });
 
-    // Persistence Effects
+    // Load initial data via API
     useEffect(() => {
-        localStorage.setItem('app_users', JSON.stringify(users));
-    }, [users]);
-
-    useEffect(() => {
-        localStorage.setItem('app_delegates', JSON.stringify(delegates));
-    }, [delegates]);
-
-    useEffect(() => {
-        localStorage.setItem('app_bankAccounts', JSON.stringify(bankAccounts));
-    }, [bankAccounts]);
-
-    useEffect(() => {
-        localStorage.setItem('app_activityLogs', JSON.stringify(activityLogs));
-    }, [activityLogs]);
+        const loadAuthData = async () => {
+            try {
+                const [loadedUsers, loadedDelegates, loadedAccounts, loadedLogs] = await Promise.all([
+                    api.users.getAll(),
+                    api.delegates.getAll(),
+                    api.bankAccounts.getAll(),
+                    api.logs.getAll()
+                ]);
+                setUsers(loadedUsers);
+                setDelegates(loadedDelegates);
+                setBankAccounts(loadedAccounts);
+                setActivityLogs(loadedLogs);
+            } catch (e) {
+                console.error("Auth data load failed", e);
+            }
+        };
+        loadAuthData();
+    }, []);
 
     useEffect(() => {
         try {
@@ -96,10 +80,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, [currentUser]);
 
-    const login = (username: string, password?: string): Promise<User> => {
+    const login = async (username: string, password?: string): Promise<User> => {
+        // Refresh users list before login to ensure sync
+        const currentUsers = await api.users.getAll();
+        setUsers(currentUsers);
+        
         return new Promise((resolve, reject) => {
-            setTimeout(() => { // Simulate network delay
-                const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+            setTimeout(() => { 
+                const user = currentUsers.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
                 if (user && user.isActive) {
                     const { password, ...userToStore } = user;
                     setCurrentUser(userToStore);
@@ -118,6 +106,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const addUser = (userData: any, referredById?: number): User => {
+        // Optimistic Update (Real ID will come from server in real app)
         const newUserId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
         const newUser: User = {
             id: newUserId,
@@ -129,30 +118,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             createdDate: new Date().toISOString().split('T')[0],
             referredById: referredById,
         };
+        
+        // Call API
+        api.users.create(newUser).then(() => {
+             // Create Delegate Profile
+            const newDelegateId = delegates.length > 0 ? Math.max(...delegates.map(d => d.id)) + 1 : 1;
+            const newDelegate: Delegate = {
+                id: newDelegateId,
+                userId: newUserId,
+                fullName: userData.fullName,
+                phone: userData.phone,
+                email: userData.email,
+                students: 0,
+                isActive: true,
+                role: userData.role,
+            };
+            api.delegates.create(newDelegate).then(d => setDelegates(prev => [...prev, d]));
+        });
+
         setUsers(prevUsers => [...prevUsers, newUser]);
-        
-        // Always create a delegate profile for any new user to store phone/email etc.
-        const newDelegateId = delegates.length > 0 ? Math.max(...delegates.map(d => d.id)) + 1 : 1;
-        const newDelegate: Delegate = {
-            id: newDelegateId,
-            userId: newUserId,
-            fullName: userData.fullName,
-            phone: userData.phone,
-            email: userData.email,
-            students: 0,
-            isActive: true,
-            // FIX: Added role when creating a new delegate to match the updated Delegate type.
-            role: userData.role,
-        };
-        setDelegates(prevDelegates => [...prevDelegates, newDelegate]);
-        
         return newUser;
     };
     
-    const updateUser = (userId: number, updatedData: any) => {
+    const updateUser = async (userId: number, updatedData: any) => {
         const { password, ...userSafeData } = updatedData;
         const finalUserData = password ? { ...userSafeData, password } : userSafeData;
         
+        await api.users.update(userId, finalUserData);
+        await api.delegates.update(userId, updatedData);
+
         setUsers(prevUsers =>
             prevUsers.map(user =>
                 user.id === userId ? { ...user, ...finalUserData } : user
@@ -166,47 +160,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setDelegates(prev => prev.map(d => d.userId === userId ? { ...d, ...updatedData } : d));
     };
 
-    const toggleUserStatus = (userId: number) => {
-        let newStatus: boolean | undefined;
-        setUsers(prevUsers =>
-            prevUsers.map(user => {
-                if (user.id === userId) {
-                    newStatus = !user.isActive;
-                    return { ...user, isActive: newStatus };
-                }
-                return user;
-            })
-        );
-        
-        if (newStatus !== undefined) {
-             setDelegates(prevDelegates =>
-                prevDelegates.map(delegate =>
-                    delegate.userId === userId ? { ...delegate, isActive: newStatus! } : delegate
-                )
-            );
+    const toggleUserStatus = async (userId: number) => {
+        const user = users.find(u => u.id === userId);
+        if(user) {
+            const newStatus = !user.isActive;
+            await api.users.update(userId, { isActive: newStatus });
+            
+            setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: newStatus } : u));
+            setDelegates(prev => prev.map(d => d.userId === userId ? { ...d, isActive: newStatus } : d));
         }
     };
     
     const incrementStudentCount = (delegateId: number) => {
+        api.delegates.updateCount(delegateId, true);
         setDelegates(prev => prev.map(d => d.id === delegateId ? { ...d, students: d.students + 1 } : d));
     };
 
     const decrementStudentCount = (delegateId: number) => {
+        api.delegates.updateCount(delegateId, false);
         setDelegates(prev => prev.map(d => d.id === delegateId ? { ...d, students: Math.max(0, d.students - 1) } : d));
     };
 
-    const addOrUpdateBankAccount = (accountData: Omit<BankAccount, 'id'>) => {
-        setBankAccounts(prev => {
+    const addOrUpdateBankAccount = async (accountData: Omit<BankAccount, 'id'>) => {
+         const savedAccount = await api.bankAccounts.save({ ...accountData, id: 0 } as BankAccount);
+         
+         setBankAccounts(prev => {
             const existingAccountIndex = prev.findIndex(acc => acc.delegateId === accountData.delegateId);
             if(existingAccountIndex > -1) {
-                // Update existing account
                 const updatedAccounts = [...prev];
-                updatedAccounts[existingAccountIndex] = {...updatedAccounts[existingAccountIndex], ...accountData};
+                updatedAccounts[existingAccountIndex] = savedAccount;
                 return updatedAccounts;
             } else {
-                // Add new account
-                const newId = prev.length > 0 ? Math.max(...prev.map(acc => acc.id)) + 1 : 1;
-                return [...prev, {id: newId, ...accountData}];
+                return [...prev, savedAccount];
             }
         });
     };
@@ -221,6 +206,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             description,
             timestamp: new Date().toISOString()
         };
+        api.logs.create(newLog);
         setActivityLogs(prev => [newLog, ...prev]);
     };
 
@@ -243,13 +229,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                  reject(new Error('كلمة المرور الحالية غير صحيحة'));
                  return;
             }
-
-            const updatedUser = { ...user, password: newPass };
-            const newUsers = [...users];
-            newUsers[userIndex] = updatedUser;
-            setUsers(newUsers);
-             
-             resolve();
+            
+            api.users.update(userId, { password: newPass }).then(() => {
+                const updatedUser = { ...user, password: newPass };
+                const newUsers = [...users];
+                newUsers[userIndex] = updatedUser;
+                setUsers(newUsers);
+                resolve();
+            });
         });
     };
 
@@ -277,12 +264,4 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             {children}
         </AuthContext.Provider>
     );
-};
-
-export const useAuth = (): AuthContextType => {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
 };

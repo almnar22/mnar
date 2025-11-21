@@ -131,8 +131,8 @@ export const DelegateManagement: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<'' | 'active' | 'inactive'>('');
   const [notification, setNotification] = useState<{message: string; type: 'success' | 'error'} | null>(null);
 
-  const delegateMap = useMemo(() => new Map(delegates.map(d => [d.userId, d])), [delegates]);
-  const userMap = useMemo(() => new Map(users.map(u => [u.id, u.fullName])), [users]);
+  const delegateMap = useMemo(() => new Map<number, Delegate>(delegates.map(d => [d.userId, d])), [delegates]);
+  const userMap = useMemo(() => new Map<number, string>(users.map(u => [u.id, u.fullName])), [users]);
   
   const roleLabels: Record<Role, string> = { admin: 'مدير نظام', manager: 'مدير تسجيل', delegate: 'مندوب' };
 
@@ -179,6 +179,8 @@ export const DelegateManagement: React.FC = () => {
       });
   }, [users, delegates, searchTerm, filterRole, filterStatus, delegateMap]);
 
+  const delegateForModal = editingUser ? (delegateMap.get(editingUser.id) || null) : null;
+
   return (
     <div>
         <UserStaffModal
@@ -186,7 +188,7 @@ export const DelegateManagement: React.FC = () => {
             onClose={() => setIsModalOpen(false)}
             onSave={handleSave}
             userToEdit={editingUser}
-            delegateToEdit={editingUser ? delegateMap.get(editingUser.id) ?? null : null}
+            delegateToEdit={delegateForModal}
         />
 
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -237,7 +239,7 @@ export const DelegateManagement: React.FC = () => {
                     <div className="mt-3 pt-3 border-t border-[var(--color-border)] text-sm space-y-2 text-[var(--color-text-base)]">
                         <p><strong>الهاتف:</strong> {user.delegate?.phone || '-'}</p>
                         <p><strong>الصلاحية:</strong> {roleLabels[user.role]}</p>
-                        <p><strong>مسجل بواسطة:</strong> {user.referredById ? userMap.get(user.referredById) : '-'}</p>
+                        <p><strong>مسجل بواسطة:</strong> {user.referredById ? (userMap.get(user.referredById) || '-') : '-'}</p>
                     </div>
                     <div className="mt-3 pt-2 border-t border-[var(--color-border)] flex justify-end gap-4">
                         <button onClick={() => openEditModal(user)} className="text-blue-600 font-semibold text-sm">تعديل</button>
@@ -270,7 +272,7 @@ export const DelegateManagement: React.FC = () => {
                   <td className="p-3 font-mono">{user.username}</td>
                   <td className="p-3">{user.delegate?.phone || '-'}</td>
                   <td className="p-3">{roleLabels[user.role]}</td>
-                  <td className="p-3">{user.referredById ? userMap.get(user.referredById) : '-'}</td>
+                  <td className="p-3">{user.referredById ? (userMap.get(user.referredById) || '-') : '-'}</td>
                   <td className="p-3">
                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${user.isActive ? 'bg-[var(--color-success-light)] text-[var(--color-success-text)]' : 'bg-gray-200 text-gray-800'}`}>
                         {user.isActive ? '✅ نشط' : '🚫 غير نشط'}
