@@ -64,10 +64,37 @@ const App: React.FC = () => {
   const { addNotification } = useNotification(); // Use Notification Context
 
   const [activeView, setActiveView] = useState<View>('dashboard');
-  const [students, setStudents] = useState<Student[]>(initialStudentsData);
-  const [commissions, setCommissions] = useState<Commission[]>(initialCommissions);
-  const [courses, setCourses] = useState<CourseObject[]>(initialCourses);
+  
+  // Initialize from localStorage with fallback to initial data
+  const [students, setStudents] = useState<Student[]>(() => {
+      const saved = localStorage.getItem('app_students');
+      return saved ? JSON.parse(saved) : initialStudentsData;
+  });
+  
+  const [commissions, setCommissions] = useState<Commission[]>(() => {
+      const saved = localStorage.getItem('app_commissions');
+      return saved ? JSON.parse(saved) : initialCommissions;
+  });
+  
+  const [courses, setCourses] = useState<CourseObject[]>(() => {
+      const saved = localStorage.getItem('app_courses');
+      return saved ? JSON.parse(saved) : initialCourses;
+  });
+  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Persistence Effects
+  useEffect(() => {
+      localStorage.setItem('app_students', JSON.stringify(students));
+  }, [students]);
+
+  useEffect(() => {
+      localStorage.setItem('app_commissions', JSON.stringify(commissions));
+  }, [commissions]);
+
+  useEffect(() => {
+      localStorage.setItem('app_courses', JSON.stringify(courses));
+  }, [courses]);
 
   // --- Auto Notifications Engine ---
   useEffect(() => {

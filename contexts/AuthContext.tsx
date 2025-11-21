@@ -1,5 +1,4 @@
 
-
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import type { User, Role, Delegate, BankAccount, ActivityLog } from '../types';
 
@@ -56,10 +55,26 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [users, setUsers] = useState<User[]>(initialUsers);
-    const [delegates, setDelegates] = useState<Delegate[]>(initialDelegates);
-    const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(initialBankAccounts);
-    const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+    // Initialize from localStorage with fallback to initial data
+    const [users, setUsers] = useState<User[]>(() => {
+        const saved = localStorage.getItem('app_users');
+        return saved ? JSON.parse(saved) : initialUsers;
+    });
+    
+    const [delegates, setDelegates] = useState<Delegate[]>(() => {
+        const saved = localStorage.getItem('app_delegates');
+        return saved ? JSON.parse(saved) : initialDelegates;
+    });
+    
+    const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(() => {
+        const saved = localStorage.getItem('app_bankAccounts');
+        return saved ? JSON.parse(saved) : initialBankAccounts;
+    });
+    
+    const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
+        const saved = localStorage.getItem('app_activityLogs');
+        return saved ? JSON.parse(saved) : [];
+    });
 
     const [currentUser, setCurrentUser] = useState<User | null>(() => {
         try {
@@ -70,6 +85,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             return null;
         }
     });
+
+    // Persistence Effects
+    useEffect(() => {
+        localStorage.setItem('app_users', JSON.stringify(users));
+    }, [users]);
+
+    useEffect(() => {
+        localStorage.setItem('app_delegates', JSON.stringify(delegates));
+    }, [delegates]);
+
+    useEffect(() => {
+        localStorage.setItem('app_bankAccounts', JSON.stringify(bankAccounts));
+    }, [bankAccounts]);
+
+    useEffect(() => {
+        localStorage.setItem('app_activityLogs', JSON.stringify(activityLogs));
+    }, [activityLogs]);
 
     useEffect(() => {
         try {
